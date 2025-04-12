@@ -1,9 +1,12 @@
+'use client'
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { use, useEffect, useState } from 'react';
 
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
-import { getRecipeById } from '@/lib/utils';
+import { getRecipeById, Recipe } from '@/lib/utils';
 
 import Loading from './loading';
 
@@ -21,13 +24,20 @@ interface IngredientGroup {
   items: ParsedIngredient[];
 }
 
-export default async function RecipePage({ params }: RecipePageProps) {
-  const { id } = await params;
+export default function RecipePage({ params }: RecipePageProps) {
+  const { id } = use(params);
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
 
   // 디버깅을 위한 콘솔 로그 추가
   console.log(`레시피 ID: ${id} 조회 시도`);
   
-  const recipe = await getRecipeById(id);
+  useEffect(() => {
+    const fetchRecipe = async () => {
+      const recipe = await getRecipeById(id);
+      setRecipe(recipe);
+    };
+    fetchRecipe();
+  }, [id]);
   
   // 디버깅을 위한 콘솔 로그 추가
   console.log(`레시피 결과:`, recipe ? '데이터 있음' : '데이터 없음');
