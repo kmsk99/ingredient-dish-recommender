@@ -38,11 +38,12 @@ export interface IngredientWithCount {
 // 모든 레시피 데이터 가져오기 - 클라이언트 측에서 호출
 export async function getAllRecipes(): Promise<Recipe[]> {
   try {
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : 'http://localhost:3000';
+    // 서버 사이드에서는 상대 경로 사용
+    const url = typeof window === 'undefined' 
+      ? '/api/recipes'
+      : `${window.location.origin}/api/recipes`;
     
-    const response = await fetch(`${baseUrl}/api/recipes`, {
+    const response = await fetch(url, {
       cache: 'no-store'
     });
     
@@ -59,12 +60,14 @@ export async function getAllRecipes(): Promise<Recipe[]> {
 // 재료 목록으로 레시피 추천 - 클라이언트 측에서 호출
 export async function getRecommendedRecipes(userIngredients: string[]): Promise<RecipeWithScore[]> {
   try {
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : 'http://localhost:3000';
-    
     const query = encodeURIComponent(userIngredients.join(','));
-    const response = await fetch(`${baseUrl}/api/recipes/recommend?ingredients=${query}`, {
+    
+    // 서버 사이드에서는 상대 경로 사용
+    const url = typeof window === 'undefined' 
+      ? `/api/recipes/recommend?ingredients=${query}`
+      : `${window.location.origin}/api/recipes/recommend?ingredients=${query}`;
+    
+    const response = await fetch(url, {
       cache: 'no-store'
     });
     
@@ -81,14 +84,12 @@ export async function getRecommendedRecipes(userIngredients: string[]): Promise<
 // ID로 레시피 가져오기 - 클라이언트 측에서 호출
 export async function getRecipeById(id: string): Promise<Recipe | null> {
   try {
-    // 상대 URL 대신 절대 URL 사용
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : 'http://localhost:3000';
+    // 서버 사이드에서는 상대 경로 사용
+    const url = typeof window === 'undefined' 
+      ? `/api/recipes/${id}`
+      : `${window.location.origin}/api/recipes/${id}`;
     
-    console.info(baseUrl)
-    
-    const response = await fetch(`${baseUrl}/api/recipes/${id}`, { 
+    const response = await fetch(url, { 
       cache: 'no-store' 
     });
     
@@ -118,11 +119,12 @@ export function parseUserIngredients(input: string): string[] {
 // 모든 재료 목록 가져오기 (자동완성용) - 클라이언트 측에서 호출
 export async function getAllIngredients(): Promise<IngredientWithCount[]> {
   try {
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : 'http://localhost:3000';
+    // 서버 사이드에서는 상대 경로 사용
+    const url = typeof window === 'undefined' 
+      ? '/api/ingredients'
+      : `${window.location.origin}/api/ingredients`;
     
-    const response = await fetch(`${baseUrl}/api/ingredients`, {
+    const response = await fetch(url, {
       cache: 'no-store'
     });
     
