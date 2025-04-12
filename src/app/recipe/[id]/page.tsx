@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 
 import Footer from '@/components/Footer';
@@ -27,9 +27,7 @@ interface IngredientGroup {
 export default function RecipePage({ params }: RecipePageProps) {
   const { id } = use(params);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-
-  // 디버깅을 위한 콘솔 로그 추가
-  console.log(`레시피 ID: ${id} 조회 시도`);
+  const router = useRouter();
   
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -39,11 +37,7 @@ export default function RecipePage({ params }: RecipePageProps) {
     fetchRecipe();
   }, [id]);
   
-  // 디버깅을 위한 콘솔 로그 추가
-  console.log(`레시피 결과:`, recipe ? '데이터 있음' : '데이터 없음');
-  
   if (!recipe) {
-    console.error(`레시피 ID ${id}를 찾을 수 없습니다.`);
     return <Loading />;
   }
   
@@ -187,15 +181,15 @@ export default function RecipePage({ params }: RecipePageProps) {
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        <Link 
-          href="/results" 
-          className="inline-flex items-center text-primary hover:text-primary-hover mb-6 font-medium transition-colors"
+        <button 
+          onClick={() => router.back()}
+          className="inline-flex items-center text-primary hover:text-primary-hover mb-6 font-medium transition-colors cursor-pointer"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
           </svg>
           결과 목록으로 돌아가기
-        </Link>
+        </button>
         
         <article className="bg-white rounded-2xl overflow-hidden shadow-md">
           {recipe.imageUrl && (

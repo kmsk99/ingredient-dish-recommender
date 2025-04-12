@@ -93,17 +93,14 @@ export async function getRecommendedRecipes(userIngredients: string[]): Promise<
 export async function getRecipeById(id: string): Promise<Recipe | null> {
   try {
     const baseUrl = getBaseUrl();
-    console.log(`getRecipeById: 요청 URL - ${baseUrl}/api/recipes/${id}`);
     
     const response = await fetch(`${baseUrl}/api/recipes/${id}`, { 
       cache: 'no-store' 
     });
     
-    console.log(`getRecipeById: 응답 상태 코드 - ${response.status}`);
     
     if (!response.ok) {
       if (response.status === 404) {
-        console.log(`getRecipeById: 레시피를 찾을 수 없음 (404)`);
         return null;
       }
       console.error(`getRecipeById: API 오류 응답 - ${response.status}`);
@@ -111,7 +108,6 @@ export async function getRecipeById(id: string): Promise<Recipe | null> {
     }
     
     const data = await response.json();
-    console.log(`getRecipeById: 데이터 수신 성공, 레시피 ID - ${data.id}`);
     return data;
   } catch (error) {
     console.error('레시피 데이터 요청 중 오류:', error);
