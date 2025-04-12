@@ -116,9 +116,9 @@ export default function IngredientInput() {
   return (
     <div className="w-full max-w-md mx-auto mt-8">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col relative bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <label htmlFor="ingredients" className="text-sm font-semibold mb-2 text-gray-700">
-            재료 입력
+        <div className="flex flex-col relative bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+          <label htmlFor="ingredients" className="text-lg font-semibold mb-2 text-gray-800 flex items-center">
+            <span className="text-primary mr-2">🍽️</span> 재료 입력
           </label>
           
           {/* 선택된 재료 목록 */}
@@ -127,7 +127,7 @@ export default function IngredientInput() {
               {selectedIngredients.map((ingredient, index) => (
                 <div 
                   key={index} 
-                  className="bg-primary bg-opacity-10 text-primary text-sm py-1 px-3 rounded-full flex items-center"
+                  className="bg-primary/10 text-primary text-sm py-1.5 px-3 rounded-full flex items-center"
                 >
                   <span>{ingredient}</span>
                   <button
@@ -144,18 +144,20 @@ export default function IngredientInput() {
             </div>
           )}
           
-          <input
-            id="ingredients"
-            type="text"
-            placeholder="예: 돼지고기, 김치, 두부"
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            ref={inputRef}
-            className="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-            autoComplete="off"
-          />
-          <p className="text-xs text-gray-500 mt-2">
+          <div className="relative">
+            <input
+              id="ingredients"
+              type="text"
+              placeholder="예: 돼지고기, 김치, 두부"
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              ref={inputRef}
+              className="p-3 pl-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary w-full"
+              autoComplete="off"
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-2 ml-1">
             재료를 입력하고 엔터키를 누르세요
           </p>
           
@@ -163,8 +165,8 @@ export default function IngredientInput() {
           {showSuggestions && (
             <div 
               ref={suggestionRef}
-              className="absolute z-10 w-full bg-white mt-1 border rounded-lg shadow-lg top-[100px] overflow-hidden"
-              style={{ top: selectedIngredients.length > 0 ? 'auto' : '100px' }}
+              className="absolute z-10 w-full bg-white mt-1 border rounded-xl shadow-lg overflow-hidden"
+              style={{ top: selectedIngredients.length > 0 ? 'auto' : '100px', marginTop: '70px' }}
             >
               {loading ? (
                 <div className="p-3 text-gray-500 text-sm">로딩 중...</div>
@@ -177,7 +179,7 @@ export default function IngredientInput() {
                       className="p-3 hover:bg-gray-50 cursor-pointer text-sm flex justify-between items-center border-b last:border-b-0 border-gray-100"
                     >
                       <span className="font-medium">{suggestion.name}</span>
-                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-secondary/10 text-secondary px-2 py-1 rounded-full">
                         {suggestion.count}개 레시피
                       </span>
                     </li>
@@ -197,9 +199,9 @@ export default function IngredientInput() {
             selectedIngredients.length === 0 
               ? 'bg-gray-400 cursor-not-allowed' 
               : 'bg-primary hover:bg-primary-hover'
-          } text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center`}
+          } text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center shadow-md`}
         >
-          <span>추천받기</span>
+          <span>레시피 추천받기</span>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>

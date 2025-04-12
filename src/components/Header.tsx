@@ -5,7 +5,8 @@ export default function Header() {
     <header className="w-full py-6 border-b border-gray-200 bg-white shadow-sm">
       <div className="container mx-auto px-4 flex flex-col items-center">
         <Link href="/" className="no-underline">
-          <h1 className="text-3xl font-bold text-center text-primary">
+          <h1 className="text-3xl font-bold text-center text-primary flex items-center">
+            <span className="text-4xl mr-2">🍳</span>
             AI 냉장고 파먹기
           </h1>
         </Link>

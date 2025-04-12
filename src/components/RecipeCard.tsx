@@ -17,7 +17,7 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
   
   return (
     <Link href={`/recipe/${recipe.id}`} className="block group">
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 h-full flex flex-col">
+      <div className="recipe-card bg-white rounded-2xl overflow-hidden h-full flex flex-col transition-all duration-300">
         <div className="relative h-48 w-full overflow-hidden">
           {recipe.imageUrl ? (
             <Image
@@ -36,14 +36,14 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
           )}
           
           {recipe.difficulty && (
-            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-xs py-1 px-2 rounded-full font-medium text-gray-700">
+            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-xs py-1 px-3 rounded-full font-medium text-gray-700 shadow-sm">
               {recipe.difficulty}
             </div>
           )}
         </div>
         
         <div className="p-5 flex-1 flex flex-col">
-          <h3 className="font-medium text-lg line-clamp-1 mb-2 group-hover:text-primary transition-colors">
+          <h3 className="font-bold text-lg line-clamp-1 mb-2 group-hover:text-primary transition-colors">
             {recipe.shortTitle || recipe.title}
           </h3>
           
@@ -62,8 +62,8 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
             <div className="space-y-2 mb-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600">내 재료 기준:</span>
-                <div className="py-1 px-3 bg-secondary/10 inline-block rounded-full">
-                  <span className="font-medium text-secondary">
+                <div className="py-1 px-3 bg-primary/10 inline-block rounded-full">
+                  <span className="font-bold text-primary">
                     {userIngredientsMatch}% 일치
                   </span>
                 </div>
@@ -71,8 +71,8 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
               
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600">레시피 기준:</span>
-                <div className="py-1 px-3 bg-primary/10 inline-block rounded-full">
-                  <span className="font-medium text-primary">
+                <div className="py-1 px-3 bg-secondary/10 inline-block rounded-full">
+                  <span className="font-bold text-secondary">
                     {recipeCoverage}% 커버
                   </span>
                 </div>

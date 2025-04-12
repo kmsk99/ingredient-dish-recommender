@@ -156,7 +156,7 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-8">
@@ -171,22 +171,25 @@ export default function ResultsPage() {
             처음으로 돌아가기
           </Link>
           
-          <h2 className="text-2xl font-bold mt-6 text-primary">추천 레시피</h2>
+          <h2 className="text-2xl font-bold mt-6 text-gray-800 flex items-center">
+            <span className="text-primary">🔍</span>
+            <span className="ml-2">맞춤형 레시피</span>
+          </h2>
           
-          <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="mt-3 p-5 bg-white rounded-2xl shadow-md">
             <div className="flex flex-col">
               <p className="text-gray-700 mb-2">
-                <span className="font-medium">입력 재료:</span> 
+                <span className="font-medium text-gray-800">입력 재료:</span> 
                 {ingredients.length === 0 && (
                   <span className="text-gray-500 ml-2">재료가 입력되지 않았습니다.</span>
                 )}
               </p>
               
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {ingredients.map((ingredient, idx) => (
                   <div 
                     key={idx} 
-                    className="bg-primary bg-opacity-10 text-primary text-sm py-1 px-3 rounded-full flex items-center"
+                    className="bg-primary/10 text-primary text-sm py-1.5 px-3 rounded-full flex items-center"
                   >
                     <span>{ingredient}</span>
                     <button
@@ -203,15 +206,18 @@ export default function ResultsPage() {
               </div>
               
               <div className="flex items-center mt-2 relative">
-                <input
-                  type="text"
-                  placeholder="재료 추가하기"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  ref={inputRef}
-                  className="p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary flex-grow"
-                />
+                <div className="relative flex-grow">
+                  
+                  <input
+                    type="text"
+                    placeholder="재료 추가하기"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    ref={inputRef}
+                    className="p-2.5 pl-10 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary w-full"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -222,7 +228,7 @@ export default function ResultsPage() {
                       setInputValue('');
                     }
                   }}
-                  className="ml-2 bg-primary hover:bg-primary-hover text-white text-sm py-2 px-3 rounded-lg"
+                  className="ml-2 bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-4 rounded-xl shadow-sm"
                 >
                   추가
                 </button>
@@ -231,7 +237,7 @@ export default function ResultsPage() {
                 {showSuggestions && (
                   <div 
                     ref={suggestionRef}
-                    className="absolute z-10 w-full bg-white mt-1 border rounded-lg shadow-lg top-[40px] left-0 overflow-hidden"
+                    className="absolute z-10 w-full bg-white mt-1 border rounded-xl shadow-lg top-[40px] left-0 overflow-hidden"
                   >
                     {loadingIngredients ? (
                       <div className="p-3 text-gray-500 text-sm">로딩 중...</div>
@@ -244,7 +250,7 @@ export default function ResultsPage() {
                             className="p-3 hover:bg-gray-50 cursor-pointer text-sm flex justify-between items-center border-b last:border-b-0 border-gray-100"
                           >
                             <span className="font-medium">{suggestion.name}</span>
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                            <span className="text-xs bg-secondary/10 text-secondary px-2 py-1 rounded-full">
                               {suggestion.count}개 레시피
                             </span>
                           </li>
@@ -273,15 +279,17 @@ export default function ResultsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-lg font-medium text-gray-700 mt-4">추천할 레시피가 없습니다.</p>
-                <p className="mt-2 text-gray-500">다른 재료를 입력해보세요.</p>
+              <div className="text-center py-12 bg-white rounded-2xl shadow-md">
+                <div className="text-8xl mb-4">😔</div>
+                <p className="text-xl font-medium text-gray-800 mt-4">
+                  추천할 레시피가 없어요
+                </p>
+                <p className="mt-2 text-gray-600">
+                  다른 재료를 입력해보시거나 더 많은 재료를 입력해보세요
+                </p>
                 <Link 
                   href="/" 
-                  className="mt-6 inline-flex items-center bg-primary hover:bg-primary-hover text-white font-medium py-2.5 px-5 rounded-lg transition-colors"
+                  className="mt-6 inline-flex items-center bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-5 rounded-xl transition-colors shadow-md"
                 >
                   다시 시도하기
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">

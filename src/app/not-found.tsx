@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-16 flex flex-col items-center justify-center">
@@ -15,7 +15,7 @@ export default function NotFound() {
         </p>
         <Link 
           href="/" 
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors"
+          className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-5 rounded-xl transition-colors shadow-md"
         >
           메인으로 돌아가기
         </Link>
