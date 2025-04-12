@@ -37,27 +37,56 @@ export interface IngredientWithCount {
 
 // 모든 레시피 데이터 가져오기 - 클라이언트 측에서 호출
 export async function getAllRecipes(): Promise<Recipe[]> {
-  const response = await fetch('/api/recipes');
-  if (!response.ok) {
-    throw new Error('레시피를 가져오는데 실패했습니다');
+  try {
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : 'http://localhost:3000';
+    
+    const response = await fetch(`${baseUrl}/api/recipes`, {
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      throw new Error('레시피를 가져오는데 실패했습니다');
+    }
+    return response.json();
+  } catch (error) {
+    console.error('레시피 목록 요청 중 오류:', error);
+    return [];
   }
-  return response.json();
 }
 
 // 재료 목록으로 레시피 추천 - 클라이언트 측에서 호출
 export async function getRecommendedRecipes(userIngredients: string[]): Promise<RecipeWithScore[]> {
-  const query = encodeURIComponent(userIngredients.join(','));
-  const response = await fetch(`/api/recipes/recommend?ingredients=${query}`);
-  if (!response.ok) {
-    throw new Error('추천 레시피를 가져오는데 실패했습니다');
+  try {
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : 'http://localhost:3000';
+    
+    const query = encodeURIComponent(userIngredients.join(','));
+    const response = await fetch(`${baseUrl}/api/recipes/recommend?ingredients=${query}`, {
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      throw new Error('추천 레시피를 가져오는데 실패했습니다');
+    }
+    return response.json();
+  } catch (error) {
+    console.error('추천 레시피 요청 중 오류:', error);
+    return [];
   }
-  return response.json();
 }
 
 // ID로 레시피 가져오기 - 클라이언트 측에서 호출
 export async function getRecipeById(id: string): Promise<Recipe | null> {
   try {
-    const response = await fetch(`/api/recipes/${id}`, { 
+    // 상대 URL 대신 절대 URL 사용
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : 'http://localhost:3000';
+    
+    const response = await fetch(`${baseUrl}/api/recipes/${id}`, { 
       cache: 'no-store' 
     });
     
@@ -86,9 +115,21 @@ export function parseUserIngredients(input: string): string[] {
 
 // 모든 재료 목록 가져오기 (자동완성용) - 클라이언트 측에서 호출
 export async function getAllIngredients(): Promise<IngredientWithCount[]> {
-  const response = await fetch('/api/ingredients');
-  if (!response.ok) {
-    throw new Error('재료 목록을 가져오는데 실패했습니다');
+  try {
+    const baseUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : 'http://localhost:3000';
+    
+    const response = await fetch(`${baseUrl}/api/ingredients`, {
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      throw new Error('재료 목록을 가져오는데 실패했습니다');
+    }
+    return response.json();
+  } catch (error) {
+    console.error('재료 목록 요청 중 오류:', error);
+    return [];
   }
-  return response.json();
 } 
