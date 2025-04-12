@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 
 import { Recipe } from '@/lib/utils';
@@ -13,11 +13,11 @@ function getAllRecipesFromFile(): Recipe[] {
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const recipes = getAllRecipesFromFile();
     const recipe = recipes.find(recipe => recipe.id === id);
     

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 
 import { Recipe } from '@/lib/utils';
@@ -12,7 +12,7 @@ function getAllRecipesFromFile(): Recipe[] {
   return recipes;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const ingredientsParam = searchParams.get('ingredients') || '';
