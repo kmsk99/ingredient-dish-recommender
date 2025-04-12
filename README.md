@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Okay, 각 페이지별로 어떤 내용과 기능이 들어가야 할지 MVP(최소 기능 제품) 관점에서 상세하게 설명해 드릴게요. 간소화된 아키텍처와 Next.js App Router, Tailwind CSS, Supabase(또는 로컬 데이터) 사용을 전제로 합니다.
 
-## Getting Started
+**1. 메인 페이지 (`src/app/page.tsx`)**
 
-First, run the development server:
+*   **역할:** 사용자가 서비스를 처음 접하고, 레시피 추천을 받기 위해 **가지고 있는 재료를 입력**하는 시작점입니다.
+*   **주요 내용 및 UI 구성 (Tailwind CSS 활용):**
+    *   **헤더 (`src/components/Header.tsx`):**
+        *   서비스 이름 (예: "AI 냉장고 파먹기") 또는 로고.
+        *   (선택 사항) 아주 간단한 소개 문구.
+    *   **핵심 영역:**
+        *   **페이지 제목:** 시선을 끄는 문구 (예: "오늘 뭐 먹지? 재료만 알려주세요!")
+        *   **안내 문구:** 사용자에게 무엇을 해야 할지 명확하게 안내 (예: "가지고 있는 식재료를 입력하고 맞춤 레시피를 추천받으세요. 재료는 쉼표(,)로 구분해주세요.")
+        *   **재료 입력 폼 (`src/components/IngredientInput.tsx` - Client Component):**
+            *   **텍스트 입력 필드 (`<input type="text">`):** 사용자가 재료명을 입력하는 곳. `placeholder`로 입력 예시 (예: "돼지고기, 김치, 두부") 제공.
+            *   **(선택적 시각화):** 입력된 재료를 아래에 태그(#돼지고기 #김치) 형태로 보여주고, 'x' 버튼으로 삭제 기능 제공 (MVP에서는 텍스트 입력만으로 단순화 가능).
+            *   **"추천받기" 버튼 (`<button>`):** 가장 중요한 액션 버튼. 클릭 시 입력된 재료 정보로 추천 로직을 실행하도록 요청.
+    *   **푸터 (`src/components/Footer.tsx`):**
+        *   팀 정보 (예: "AI 종합설계 1조").
+        *   데이터 출처 명시 (예: "Data based on 만개의 레시피").
+*   **핵심 기능:**
+    *   사용자로부터 재료 목록 텍스트를 입력받는다.
+    *   "추천받기" 버튼 클릭 시 입력된 재료 정보를 가지고 결과 페이지로 이동하거나, 서버 액션을 호출한다.
+*   **구현 포인트:**
+    *   `page.tsx`는 서버 컴포넌트로 유지하고, 재료 입력 상호작용이 필요한 `IngredientInput.tsx`는 클라이언트 컴포넌트(`'use client'`)로 만듭니다.
+    *   버튼 클릭 시 페이지 이동 및 데이터 전달 방식 결정 (Server Actions + redirect 또는 useRouter + query params).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**2. 추천 결과 페이지 (`src/app/results/page.tsx`)**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+*   **역할:** 사용자가 입력한 재료를 기반으로 **추천된 레시피 목록을 보여주는** 페이지입니다.
+*   **주요 내용 및 UI 구성 (Tailwind CSS 활용):**
+    *   **헤더 (`src/components/Header.tsx`):** 동일하게 표시.
+    *   **핵심 영역:**
+        *   **검색 조건 확인:** 페이지 상단에 사용자가 입력했던 재료 목록을 다시 보여주어 어떤 재료 기반의 추천인지 명확히 함 (예: "입력 재료: 돼지고기, 김치, 두부").
+        *   **결과 목록 제목:** (예: "추천 레시피").
+        *   **레시피 카드 리스트:**
+            *   서버로부터 받아온 추천 레시피 목록을 순회하며 `src/components/RecipeCard.tsx` 컴포넌트를 반복 렌더링.
+            *   **그리드 레이아웃:** 카드들을 보기 좋게 여러 열(예: 2~3열)로 정렬.
+            *   **`RecipeCard` 내용:**
+                *   레시피 이미지 (있으면 표시, 없으면 기본 이미지).
+                *   레시피 제목 (클릭 가능하게 `Link` 컴포넌트 사용).
+                *   **핵심:** 해당 레시피에 사용된 재료 중 **사용자가 입력한 재료가 얼마나 포함되는지** 시각적으로 알 수 있게 표시 (예: "내 재료 3개 중 2개 포함" 또는 포함된 재료 강조).
+                *   간단 정보: 난이도, 예상 시간.
+                *   인기도: 조회수 또는 추천수 표시.
+        *   **결과 없음 안내:** 추천된 레시피가 없을 경우, "추천할 레시피가 없습니다." 와 같은 메시지를 명확하게 표시.
+    *   **푸터 (`src/components/Footer.tsx`):** 동일하게 표시.
+*   **핵심 기능:**
+    *   페이지 로드 시 입력된 재료를 기반으로 백엔드(Python API + Supabase/로컬데이터)에 추천 레시피 목록을 요청하고 받아온다 (`lib/actions.ts` 사용).
+    *   받아온 데이터를 `RecipeCard` 형태로 목록화하여 보여준다.
+    *   각 카드를 클릭하면 해당 레시피의 상세 페이지로 이동시킨다.
+*   **구현 포인트:**
+    *   `results/page.tsx`는 서버 컴포넌트로 만들어 서버 사이드에서 데이터 페칭 및 렌더링을 수행합니다.
+    *   데이터 로딩 중임을 나타내는 `loading.tsx` 파일을 `app/results` 폴더에 추가하는 것을 고려합니다.
+    *   데이터 페칭 함수(`getRecommendedRecipes`)는 `lib/actions.ts`에 구현합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**3. 레시피 상세 페이지 (`src/app/recipe/[id]/page.tsx`)**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+*   **역할:** 사용자가 목록에서 선택한 **개별 레시피의 상세 정보를 자세히 보여주는** 페이지입니다.
+*   **주요 내용 및 UI 구성 (Tailwind CSS 활용):**
+    *   **헤더 (`src/components/Header.tsx`):** 동일하게 표시.
+    *   **핵심 영역:**
+        *   **(선택) 뒤로가기:** 사용자가 목록으로 쉽게 돌아갈 수 있는 버튼/링크.
+        *   **레시피 제목:** 크고 명확하게 표시.
+        *   **대표 이미지:** 있다면 크게 표시.
+        *   **요리 소개:** 레시피에 대한 설명 (`CKG_IPDC`).
+        *   **기본 정보:** 인분, 조리 시간, 난이도 (아이콘과 함께 표시하면 좋음).
+        *   **인기 정보:** 조회수, 추천수, 스크랩수 (아이콘과 함께 표시하면 좋음).
+        *   **재료 목록:**
+            *   "재료" 섹션 제목.
+            *   `CKG_MTRL_CN` 데이터를 파싱하여 주재료, 부재료, 양념 등을 구분하여 리스트(`ul/li`)로 명확하게 보여줌.
+            *   **가독성 중요:** 재료명과 양을 명확히 구분하여 표시.
+        *   **조리 순서:**
+            *   "만드는 법" 섹션 제목.
+            *   데이터에 있는 조리 단계를 순서대로 번호 목록(`ol/li`)으로 보여줌.
+            *   각 단계 설명이 명확하게 보이도록 스타일링.
+    *   **푸터 (`src/components/Footer.tsx`):** 동일하게 표시.
+*   **핵심 기능:**
+    *   페이지 로드 시 URL의 `id` 파라미터를 이용해 해당 레시피의 상세 데이터를 백엔드(Supabase/로컬 데이터)에서 가져온다 (`lib/actions.ts` 사용).
+    *   가져온 데이터를 각 섹션에 맞게 구조화하여 보여준다.
+    *   특히, 재료 목록(`CKG_MTRL_CN`)과 조리 순서 데이터를 사용자가 이해하기 쉽게 가공하여 표시한다.
+*   **구현 포인트:**
+    *   `recipe/[id]/page.tsx`는 서버 컴포넌트로 만들어 서버 사이드에서 데이터 페칭 및 렌더링을 수행합니다.
+    *   URL 파라미터(`params.id`)를 받아 사용합니다.
+    *   데이터 페칭 함수(`getRecipeById`)는 `lib/actions.ts`에 구현합니다.
+    *   `CKG_MTRL_CN` 필드가 복잡한 텍스트 형태일 경우, 이를 파싱하는 유틸리티 함수를 `lib/utils.ts` 등에 만들어 활용합니다.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+이 가이드라인을 따라서 각 페이지를 구현하면 MVP 목표를 달성하는 데 도움이 될 것입니다.
