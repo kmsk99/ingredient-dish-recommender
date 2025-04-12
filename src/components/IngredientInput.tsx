@@ -156,17 +156,11 @@ export default function IngredientInput() {
               className="p-3 pl-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary w-full"
               autoComplete="off"
             />
-          </div>
-          <p className="text-xs text-gray-500 mt-2 ml-1">
-            재료를 입력하고 엔터키를 누르세요
-          </p>
-          
-          {/* 자동완성 목록 */}
+            {/* 자동완성 목록 */}
           {showSuggestions && (
             <div 
               ref={suggestionRef}
-              className="absolute z-10 w-full bg-white mt-1 border rounded-xl shadow-lg overflow-hidden"
-              style={{ top: selectedIngredients.length > 0 ? 'auto' : '100px', marginTop: '70px' }}
+              className="absolute z-10 w-full bg-white mt-1 border rounded-xl shadow-lg overflow-hidden top-[100%]"
             >
               {loading ? (
                 <div className="p-3 text-gray-500 text-sm">로딩 중...</div>
@@ -190,6 +184,12 @@ export default function IngredientInput() {
               )}
             </div>
           )}
+          </div>
+          <p className="text-xs text-gray-500 mt-2 ml-1">
+            재료를 입력하고 엔터키를 누르세요
+          </p>
+          
+          
         </div>
 
         <button
@@ -198,7 +198,7 @@ export default function IngredientInput() {
           className={`${
             selectedIngredients.length === 0 
               ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-primary hover:bg-primary-hover'
+              : 'bg-primary hover:bg-primary-hover cursor-pointer'
           } text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center shadow-md`}
         >
           <span>레시피 추천받기</span>

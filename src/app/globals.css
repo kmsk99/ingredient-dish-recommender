@@ -71,15 +71,6 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(233, 64, 87, 0.1);
 }
 
-a {
-  color: var(--color-primary);
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  color: var(--color-primary-hover);
-}
-
 /* 음식 느낌 강조를 위한 추가 스타일 */
 .card-hover {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
