@@ -1,14 +1,11 @@
-import fs from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 import { Recipe } from '@/lib/utils';
 
 // 서버 사이드에서만 실행되는 함수
-function getAllRecipesFromFile(): Recipe[] {
-  const filePath = path.join(process.cwd(), 'src/data/processed_recipes.json');
-  const fileContents = fs.readFileSync(filePath, 'utf8');
-  const recipes = JSON.parse(fileContents);
+async function getAllRecipesFromFile(): Promise<Recipe[]> {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/data/processed_recipes.json`);
+  const recipes = await response.json();
   return recipes;
 }
 
@@ -26,7 +23,7 @@ export async function GET(request: NextRequest) {
       .map(item => item.trim())
       .filter(item => item.length > 0);
     
-    const recipes = getAllRecipesFromFile();
+    const recipes = await getAllRecipesFromFile();
     
     // 재료 이름을 소문자로 변환하고 공백 제거
     const normalizedUserIngredients = userIngredients.map(ing => 
