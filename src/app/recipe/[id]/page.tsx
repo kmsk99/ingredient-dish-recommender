@@ -10,6 +10,16 @@ interface RecipePageProps {
   params: { id: string };
 }
 
+interface ParsedIngredient {
+  name: string;
+  amount: string;
+}
+
+interface IngredientGroup {
+  title: string;
+  items: ParsedIngredient[];
+}
+
 export default async function RecipePage({ params }: RecipePageProps) {
   const recipe = await getRecipeById(params.id);
   
@@ -17,25 +27,139 @@ export default async function RecipePage({ params }: RecipePageProps) {
     notFound();
   }
   
-  // 재료 정보 파싱 (간단한 구현)
-  let ingredients: { name: string; amount: string }[] = [];
+  // 재료 정보 파싱 (개선된 구현)
+  const ingredientGroups: IngredientGroup[] = [];
+  
   try {
-    // 예: "[재료] 돼지고기\u0007500\u0007g\u0007| 된장\u00071.5\u0007큰술\u0007"
-    const rawIngredientsText = recipe.rawIngredients;
-    const matches = rawIngredientsText.matchAll(/([^|\u0007]+)\u0007([^|\u0007]*)\u0007([^|\u0007]*)\u0007\|?/g);
-    
-    for (const match of matches) {
-      if (match[1].trim()) {
-        ingredients.push({
-          name: match[1].trim(),
-          amount: `${match[2] || ''} ${match[3] || ''}`.trim(),
-        });
+    if (recipe.rawIngredients) {
+      // 유니코드 제어 문자를 공백으로 변환
+      const cleanText = recipe.rawIngredients.replace(/\u0007/g, ' ').trim();
+      
+      // 재료 그룹 매칭 - [재료], [양념], [고명] 등으로 시작하는 부분을 찾음
+      const groupRegex = /\[([^\]]+)\](.*?)(?=\[[^\]]+\]|$)/g;
+      let match;
+      
+      while ((match = groupRegex.exec(cleanText + ' ')) !== null) {
+        const groupTitle = match[1].trim();
+        const groupContent = match[2].trim();
+        
+        // '|'로 구분된 각 재료 항목 파싱
+        const items = groupContent.split('|').map(item => {
+          const trimmedItem = item.trim();
+          if (!trimmedItem) return null;
+          
+          // 공백으로 단어를 분리
+          const parts = trimmedItem.split(' ').filter(p => p.trim());
+          
+          if (parts.length <= 1) {
+            return { name: trimmedItem, amount: '' };
+          }
+          
+          // 숫자(또는 분수)로 시작하는 첫 부분 찾기
+          let amountStartIndex = -1;
+          for (let i = 0; i < parts.length; i++) {
+            // 숫자 또는 분수(1/2 등)로 시작하는지 확인
+            if (/^[\d\/]+/.test(parts[i])) {
+              amountStartIndex = i;
+              break;
+            }
+          }
+          
+          // 숫자로 시작하는 부분이 있으면, 그 부분부터 끝까지를 수량으로 처리
+          if (amountStartIndex > 0) {
+            const name = parts.slice(0, amountStartIndex).join(' ');
+            const amount = parts.slice(amountStartIndex).join(' ');
+            return { name, amount };
+          }
+          
+          // 숫자로 시작하는 부분이 없거나, 첫 단어부터 숫자면 기존 방식으로 파싱
+          const lastIsUnit = isNaN(Number(parts[parts.length - 1]));
+          const secondLastIsNumber = !isNaN(Number(parts[parts.length - 2]));
+          
+          if (parts.length >= 3 && secondLastIsNumber && lastIsUnit) {
+            // 수량이 있는 경우 (예: "다진 마늘 1 숟갈")
+            const quantity = parts.slice(-2).join(' ');
+            const name = parts.slice(0, -2).join(' ');
+            return { name, amount: quantity };
+          } else if (parts.length >= 2 && !isNaN(Number(parts[parts.length - 1]))) {
+            // 단위 없는 수량만 있는 경우 (예: "계란 2")
+            const quantity = parts[parts.length - 1];
+            const name = parts.slice(0, -1).join(' ');
+            return { name, amount: quantity };
+          } else {
+            // 수량을 파싱할 수 없는 경우
+            return { name: trimmedItem, amount: '' };
+          }
+        }).filter(Boolean) as ParsedIngredient[];
+        
+        if (items.length > 0) {
+          ingredientGroups.push({ title: groupTitle, items });
+        }
+      }
+      
+      // 그룹 매칭이 없는 경우, 전체를 하나의 그룹으로 처리
+      if (ingredientGroups.length === 0) {
+        const items = cleanText.split('|').map(item => {
+          const trimmedItem = item.trim();
+          if (!trimmedItem) return null;
+          
+          // 위와 동일한 로직으로 재료명과 수량 분리
+          const parts = trimmedItem.split(' ').filter(p => p.trim());
+          
+          if (parts.length <= 1) {
+            return { name: trimmedItem, amount: '' };
+          }
+          
+          // 숫자(또는 분수)로 시작하는 첫 부분 찾기
+          let amountStartIndex = -1;
+          for (let i = 0; i < parts.length; i++) {
+            // 숫자 또는 분수(1/2 등)로 시작하는지 확인
+            if (/^[\d\/]+/.test(parts[i])) {
+              amountStartIndex = i;
+              break;
+            }
+          }
+          
+          // 숫자로 시작하는 부분이 있으면, 그 부분부터 끝까지를 수량으로 처리
+          if (amountStartIndex > 0) {
+            const name = parts.slice(0, amountStartIndex).join(' ');
+            const amount = parts.slice(amountStartIndex).join(' ');
+            return { name, amount };
+          }
+          
+          const lastIsUnit = isNaN(Number(parts[parts.length - 1]));
+          const secondLastIsNumber = !isNaN(Number(parts[parts.length - 2]));
+          
+          if (parts.length >= 3 && secondLastIsNumber && lastIsUnit) {
+            // 수량이 있는 경우 (예: "다진 마늘 1 숟갈")
+            const quantity = parts.slice(-2).join(' ');
+            const name = parts.slice(0, -2).join(' ');
+            return { name, amount: quantity };
+          } else if (parts.length >= 2 && !isNaN(Number(parts[parts.length - 1]))) {
+            // 단위 없는 수량만 있는 경우 (예: "계란 2")
+            const quantity = parts[parts.length - 1];
+            const name = parts.slice(0, -1).join(' ');
+            return { name, amount: quantity };
+          } else {
+            return { name: trimmedItem, amount: '' };
+          }
+        }).filter(Boolean) as ParsedIngredient[];
+        
+        if (items.length > 0) {
+          ingredientGroups.push({ title: '재료', items });
+        }
       }
     }
   } catch (error) {
     console.error('재료 정보 파싱 오류:', error);
-    // 파싱에 실패한 경우 대체 방법으로 처리
-    ingredients = recipe.ingredients.map(name => ({ name, amount: '' }));
+    
+    // 파싱에 실패한 경우 단순 목록으로 대체
+    if (recipe.ingredients.length > 0) {
+      ingredientGroups.push({
+        title: '재료',
+        items: recipe.ingredients.map(name => ({ name, amount: '' }))
+      });
+    }
   }
 
   return (
@@ -86,20 +210,28 @@ export default async function RecipePage({ params }: RecipePageProps) {
           
           <section className="mt-8">
             <h2 className="text-xl font-bold mb-3">재료</h2>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {ingredients.length > 0 ? (
-                ingredients.map((ingredient, index) => (
-                  <li key={index} className="flex justify-between py-1 border-b">
-                    <span>{ingredient.name}</span>
-                    <span className="text-gray-600">{ingredient.amount}</span>
-                  </li>
-                ))
-              ) : (
-                recipe.ingredients.map((ingredient, index) => (
-                  <li key={index} className="py-1 border-b">{ingredient}</li>
-                ))
-              )}
-            </ul>
+            
+            {ingredientGroups.length > 0 ? (
+              ingredientGroups.map((group, groupIndex) => (
+                <div key={groupIndex} className="mb-6">
+                  {ingredientGroups.length > 1 && (
+                    <h3 className="font-medium text-lg mb-2">{group.title}</h3>
+                  )}
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {group.items.map((ingredient, index) => (
+                      <li key={index} className="flex justify-between py-1 border-b">
+                        <span>{ingredient.name}</span>
+                        {ingredient.amount && (
+                          <span className="text-gray-600">{ingredient.amount}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-600">재료 정보가 없습니다.</p>
+            )}
           </section>
           
           <section className="mt-8">
