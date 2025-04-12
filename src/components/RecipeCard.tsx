@@ -9,42 +9,91 @@ interface RecipeCardProps {
 }
 
 export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps) {
+  // 사용자 입력 재료 대비 일치율 (%)
+  const userIngredientsMatch = Math.round((recipe.score.matchCount / userIngredients.length) * 100);
+  
+  // 레시피 전체 재료 대비 일치율 (%)
+  const recipeCoverage = Math.round(recipe.score.recipeIngredientCoverage * 100);
+  
   return (
-    <Link href={`/recipe/${recipe.id}`} className="block">
-      <div className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-        <div className="relative h-48 w-full">
+    <Link href={`/recipe/${recipe.id}`} className="block group">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 h-full flex flex-col">
+        <div className="relative h-48 w-full overflow-hidden">
           {recipe.imageUrl ? (
             <Image
               src={recipe.imageUrl}
               alt={recipe.title}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <div className="bg-gray-200 h-full w-full flex items-center justify-center text-gray-500">
-              이미지 없음
+            <div className="bg-gray-100 h-full w-full flex items-center justify-center text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          )}
+          
+          {recipe.difficulty && (
+            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-xs py-1 px-2 rounded-full font-medium text-gray-700">
+              {recipe.difficulty}
             </div>
           )}
         </div>
         
-        <div className="p-4">
-          <h3 className="font-medium text-lg line-clamp-1 mb-1">{recipe.shortTitle || recipe.title}</h3>
+        <div className="p-5 flex-1 flex flex-col">
+          <h3 className="font-medium text-lg line-clamp-1 mb-2 group-hover:text-primary transition-colors">
+            {recipe.shortTitle || recipe.title}
+          </h3>
           
-          <div className="flex items-center text-sm text-gray-600 mb-2">
-            <span className="mr-3">{recipe.difficulty || '난이도 정보 없음'}</span>
-            {recipe.time && <span>{recipe.time}</span>}
+          <div className="flex items-center text-sm text-gray-600 mb-3">
+            {recipe.time && (
+              <span className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {recipe.time}
+              </span>
+            )}
           </div>
           
-          <div className="text-sm mb-2">
-            <span className="font-medium text-blue-600">
-              내 재료 {userIngredients.length}개 중 {recipe.score.matchCount}개 포함
-            </span>
-          </div>
-          
-          <div className="flex items-center text-xs text-gray-500 mt-2">
-            <span className="mr-2">조회 {recipe.viewCount}</span>
-            <span>추천 {recipe.recommendCount}</span>
+          <div className="mt-auto">
+            <div className="space-y-2 mb-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">내 재료 기준:</span>
+                <div className="py-1 px-3 bg-secondary/10 inline-block rounded-full">
+                  <span className="font-medium text-secondary">
+                    {userIngredientsMatch}% 일치
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">레시피 기준:</span>
+                <div className="py-1 px-3 bg-primary/10 inline-block rounded-full">
+                  <span className="font-medium text-primary">
+                    {recipeCoverage}% 커버
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center text-xs text-gray-500">
+              <span className="mr-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                {recipe.viewCount}
+              </span>
+              <span className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                </svg>
+                {recipe.recommendCount}
+              </span>
+            </div>
           </div>
         </div>
       </div>

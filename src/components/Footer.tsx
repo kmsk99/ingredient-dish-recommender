@@ -1,8 +1,13 @@
 export default function Footer() {
   return (
-    <footer className="w-full flex flex-col items-center py-4 text-sm text-gray-500 mt-8">
-      <p>AI 종합설계 1조</p>
-      <p className="mt-1">Data based on 만개의 레시피</p>
+    <footer className="w-full py-6 mt-12 bg-gray-100">
+      <div className="container mx-auto px-4 flex flex-col items-center">
+        <p className="text-gray-700 font-medium">AI 종합설계 1조</p>
+        <p className="mt-2 text-sm text-gray-500">
+          Data based on <span className="text-primary">만개의 레시피</span>
+        </p>
+        <p className="mt-4 text-xs text-gray-400">© 2024 AI 냉장고 파먹기</p>
+      </div>
     </footer>
   );
 } 
