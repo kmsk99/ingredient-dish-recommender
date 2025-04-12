@@ -23,9 +23,16 @@ interface IngredientGroup {
 export default async function RecipePage({ params }: RecipePageProps) {
   const { id } = await params;
 
+  // 디버깅을 위한 콘솔 로그 추가
+  console.log(`레시피 ID: ${id} 조회 시도`);
+  
   const recipe = await getRecipeById(id);
   
+  // 디버깅을 위한 콘솔 로그 추가
+  console.log(`레시피 결과:`, recipe ? '데이터 있음' : '데이터 없음');
+  
   if (!recipe) {
+    console.error(`레시피 ID ${id}를 찾을 수 없습니다.`);
     notFound();
   }
   
