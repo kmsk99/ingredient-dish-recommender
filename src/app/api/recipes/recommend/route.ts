@@ -1,21 +1,6 @@
-import fs from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
-import { Recipe } from '@/lib/utils';
-
-// 서버 사이드에서만 실행되는 함수
-function getAllRecipesFromFile(): Recipe[] {
-  try {
-    // public 폴더에서 파일 읽기 시도
-    const filePath = path.join(process.cwd(), 'public/data/processed_recipes.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileContents);
-  } catch (error) {
-    console.error('파일 읽기 오류:', error);
-    return [];
-  }
-}
+import { getAllRecipesFromFile } from '@/lib/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +16,7 @@ export async function GET(request: NextRequest) {
       .map(item => item.trim())
       .filter(item => item.length > 0);
     
-    const recipes = getAllRecipesFromFile();
+    const recipes = await getAllRecipesFromFile();
     
     // 재료 이름을 소문자로 변환하고 공백 제거
     const normalizedUserIngredients = userIngredients.map(ing => 

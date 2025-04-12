@@ -132,4 +132,4 @@ export async function getAllIngredients(): Promise<IngredientWithCount[]> {
     console.error('재료 목록 요청 중 오류:', error);
     return [];
   }
-} 
+}
