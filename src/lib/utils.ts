@@ -86,6 +86,8 @@ export async function getRecipeById(id: string): Promise<Recipe | null> {
       ? window.location.origin 
       : 'http://localhost:3000';
     
+    console.info(baseUrl)
+    
     const response = await fetch(`${baseUrl}/api/recipes/${id}`, { 
       cache: 'no-store' 
     });
