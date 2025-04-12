@@ -1,10 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import { getRecipeById } from '@/lib/utils';
+
+import Loading from './loading';
 
 interface RecipePageProps {
   params: Promise<{ id: string }>;
@@ -33,7 +34,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
   
   if (!recipe) {
     console.error(`레시피 ID ${id}를 찾을 수 없습니다.`);
-    notFound();
+    return <Loading />;
   }
   
   // 재료 정보 파싱 (개선된 구현)
