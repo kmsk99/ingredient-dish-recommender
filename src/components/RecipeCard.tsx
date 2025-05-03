@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect } from 'react';
 
 import { RecipeWithScore } from '@/lib/utils';
 
@@ -9,19 +10,25 @@ interface RecipeCardProps {
 }
 
 export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps) {
-  // 사용자 입력 재료 대비 일치율 (%)
-  const userIngredientsMatch = Math.round((recipe.score.matchCount / userIngredients.length) * 100);
+  // AI 추천 점수 (임베딩 기반 유사도 점수)
+  const recommendationScore = recipe.score.similarity 
+    ? Math.round(recipe.score.similarity * 100) 
+    : Math.round(recipe.score.weightedScore * 100);
   
-  // 레시피 전체 재료 대비 일치율 (%)
-  const recipeCoverage = Math.round(recipe.score.recipeIngredientCoverage * 100);
+  // 재료 일치 개수
+  const matchedIngredientsCount = recipe.score.matchCount;
+
+  useEffect(() => {
+    console.log(recipe);
+  }, [recipe]);
   
   return (
     <Link href={`/recipe/${recipe.id}`} className="block group">
       <div className="recipe-card bg-white rounded-2xl overflow-hidden h-full flex flex-col transition-all duration-300">
         <div className="relative h-48 w-full overflow-hidden">
-          {recipe.imageUrl ? (
+          {recipe.image_url ? (
             <Image
-              src={recipe.imageUrl}
+              src={recipe.image_url}
               alt={recipe.title}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -61,19 +68,19 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
           <div className="mt-auto">
             <div className="space-y-2 mb-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">내 재료 기준:</span>
+                <span className="text-gray-600">AI 추천 점수:</span>
                 <div className="py-1 px-3 bg-primary/10 inline-block rounded-full">
                   <span className="font-bold text-primary">
-                    {userIngredientsMatch}% 일치
+                    {recommendationScore}%
                   </span>
                 </div>
               </div>
               
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">레시피 기준:</span>
+                <span className="text-gray-600">일치 재료 수:</span>
                 <div className="py-1 px-3 bg-secondary/10 inline-block rounded-full">
                   <span className="font-bold text-secondary">
-                    {recipeCoverage}% 커버
+                    {matchedIngredientsCount}개 재료
                   </span>
                 </div>
               </div>

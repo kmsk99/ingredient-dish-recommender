@@ -6,25 +6,30 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-types": "mkdir -p src/supabase/types && pnpm supabase gen types typescript --project-id cveoujbrhjmjvzzgpnfr --schema public > src/supabase/types/database.types.ts && prettier --write src/supabase/types/database.types.ts"
   },
   "dependencies": {
-    "next": "15.3.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "^2.49.4",
+    "next": "15.3.1",
+    "react": "^19",
+    "react-dom": "^19",
     "react-icons": "^5.5.0",
     "tailwindcss-themer": "^4.1.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@eslint/eslintrc": "^3.3.1",
+    "@tailwindcss/postcss": "^4.1.5",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
-    "eslint-config-next": "15.3.0",
-    "tailwindcss": "^4",
+    "eslint-config-next": "15.3.1",
+    "prettier": "^3.5.3",
+    "supabase": "^2.22.6",
+    "tailwindcss": "^4.1.5",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

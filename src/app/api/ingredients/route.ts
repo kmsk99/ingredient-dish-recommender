@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getAllRecipesFromFile } from '@/lib/server';
+import { supabase } from '@/lib/supabase';
 import { IngredientWithCount, Recipe } from '@/lib/utils';
 
 // 서버 사이드에서만 실행되는 함수
@@ -24,15 +24,78 @@ function getAllIngredientsFromRecipes(recipes: Recipe[]): IngredientWithCount[] 
   return ingredientsWithCount;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const recipes = await getAllRecipesFromFile();
-    const ingredientsWithCount = getAllIngredientsFromRecipes(recipes);
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    // 재료 조회 쿼리 구성
+    let query = supabase
+      .from('ingredients')
+      .select(`
+        id,
+        name,
+        recipe_ingredients!inner (
+          recipe_id
+        )
+      `);
+
+    // 검색어가 있으면 필터링 적용
+    if (search) {
+      query = query.ilike('name', `%${search}%`);
+    }
+
+    // 페이지네이션 적용
+    query = query
+      .order('name', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('재료 목록 조회 오류:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 재료별 레시피 개수 계산
+    const ingredientsWithCount: IngredientWithCount[] = data.map(ingredient => ({
+      name: ingredient.name,
+      count: ingredient.recipe_ingredients.length
+    })).sort((a, b) => b.count - a.count); // 사용 빈도 순 정렬
+
     return NextResponse.json(ingredientsWithCount);
-  } catch (error) {
-    console.error('재료 목록을 가져오는 중 오류 발생:', error);
+  } catch (error: any) {
+    console.error('재료 API 오류:', error);
     return NextResponse.json(
-      { error: '재료 목록을 가져오는 중 오류가 발생했습니다.' },
+      { error: error.message || '재료 목록을 가져오는 중 오류가 발생했습니다.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const ingredient = await request.json();
+    
+    // 1. 재료 생성
+    const { data, error } = await supabase
+      .from('ingredients')
+      .insert({
+        name: ingredient.name
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

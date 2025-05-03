@@ -1,24 +1,21 @@
+// 애플리케이션 전반에서 사용되는 타입 정의
 export interface Recipe {
   id: string;
   title: string;
-  shortTitle: string;
-  registerId: string;
-  registerName: string;
-  viewCount: number;
-  recommendCount: number;
-  scrapCount: number;
-  method: string;
-  situation: string;
-  materialCategory: string;
-  kind: string;
-  description: string;
-  rawIngredients: string;
-  servings: string;
-  difficulty: string;
-  time: string;
-  firstRegisterDate: string;
-  imageUrl: string;
+  short_title?: string;
   ingredients: string[];
+  raw_ingredients?: string;
+  image_url?: string;
+  description?: string;
+  viewCount?: number;
+  recommendCount?: number;
+  scrapCount?: number;
+  difficulty?: string;
+  time?: string;
+  servings?: string;
+  rawIngredients?: string;
+  similarity?: number; // 임베딩 기반 유사도 점수
+  [key: string]: any; // 기타 속성
 }
 
 export interface RecipeWithScore extends Recipe {
@@ -27,6 +24,7 @@ export interface RecipeWithScore extends Recipe {
     matchRatio: number;
     weightedScore: number;
     recipeIngredientCoverage: number;
+    similarity?: number; // 임베딩 기반 유사도 점수
   };
 }
 
@@ -35,110 +33,100 @@ export interface IngredientWithCount {
   count: number;
 }
 
-// 서버 및 클라이언트 환경에서 올바른 기본 URL 가져오기
-function getBaseUrl() {
-  if (typeof window !== 'undefined') {
-    // 클라이언트 측
-    return window.location.origin;
-  }
-  
-  // 서버 측
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  
-  // 개발 환경
-  return 'http://localhost:3000';
+export interface RecommendedRecipe {
+  id: string;
+  title: string;
+  short_title?: string;
+  raw_ingredients?: string;
+  image_url?: string;
+  similarity: number;
 }
 
-// 모든 레시피 데이터 가져오기 - 클라이언트 측에서 호출
-export async function getAllRecipes(): Promise<Recipe[]> {
+// 문자열이 유효한 URL인지 확인
+export function isValidUrl(url: string): boolean {
   try {
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/recipes`, {
-      cache: 'no-store'
-    });
-    
-    if (!response.ok) {
-      throw new Error('레시피를 가져오는데 실패했습니다');
-    }
-    return response.json();
-  } catch (error) {
-    console.error('레시피 목록 요청 중 오류:', error);
-    return [];
+    new URL(url);
+    return true;
+  } catch {
+    return false;
   }
 }
 
-// 재료 목록으로 레시피 추천 - 클라이언트 측에서 호출
-export async function getRecommendedRecipes(userIngredients: string[]): Promise<RecipeWithScore[]> {
-  try {
-    const query = encodeURIComponent(userIngredients.join(','));
-    const baseUrl = getBaseUrl();
-    
-    const response = await fetch(`${baseUrl}/api/recipes/recommend?ingredients=${query}`, {
-      cache: 'no-store'
-    });
-    
-    if (!response.ok) {
-      throw new Error('추천 레시피를 가져오는데 실패했습니다');
-    }
-    return response.json();
-  } catch (error) {
-    console.error('추천 레시피 요청 중 오류:', error);
-    return [];
-  }
+// 유사도 점수를 퍼센트로 변환 (소수점 첫째 자리까지)
+export function similarityToPercent(similarity: number): string {
+  return `${Math.round(similarity * 1000) / 10}%`;
 }
 
-// ID로 레시피 가져오기 - 클라이언트 측에서 호출
-export async function getRecipeById(id: string): Promise<Recipe | null> {
-  try {
-    const baseUrl = getBaseUrl();
-    
-    const response = await fetch(`${baseUrl}/api/recipes/${id}`, { 
-      cache: 'no-store' 
-    });
-    
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      console.error(`getRecipeById: API 오류 응답 - ${response.status}`);
-      throw new Error('레시피를 가져오는데 실패했습니다');
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('레시피 데이터 요청 중 오류:', error);
-    return null;
-  }
-}
-
-// 사용자 입력 문자열에서 재료 목록 추출
-export function parseUserIngredients(input: string): string[] {
-  if (!input) return [];
+// 사용자 입력 재료 문자열을 배열로 파싱
+export function parseUserIngredients(ingredientsStr: string): string[] {
+  if (!ingredientsStr) return [];
   
-  return input
+  return ingredientsStr
     .split(',')
     .map(item => item.trim())
     .filter(item => item.length > 0);
 }
 
-// 모든 재료 목록 가져오기 (자동완성용) - 클라이언트 측에서 호출
-export async function getAllIngredients(): Promise<IngredientWithCount[]> {
+// ID로 레시피 상세 정보 가져오기
+export async function getRecipeById(id: string): Promise<Recipe | null> {
   try {
-    const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/api/ingredients`, {
-      cache: 'no-store'
-    });
+    const response = await fetch(`/api/recipes/${id}`);
     
     if (!response.ok) {
-      throw new Error('재료 목록을 가져오는데 실패했습니다');
+      if (response.status === 404) {
+        console.warn(`레시피 ID ${id}를 찾을 수 없습니다.`);
+        return null;
+      }
+      throw new Error(`레시피를 가져오는데 실패했습니다: ${response.status}`);
     }
-    return response.json();
+    
+    return await response.json();
   } catch (error) {
-    console.error('재료 목록 요청 중 오류:', error);
+    console.error('레시피 상세 가져오기 오류:', error);
+    return null;
+  }
+}
+
+// 재료에 기반한 추천 레시피 가져오기
+export async function getRecommendedRecipes(ingredients: string[]): Promise<RecipeWithScore[]> {
+  try {
+    if (ingredients.length === 0) return [];
+    
+    // 첫 번째로 임베딩 기반 추천 시도
+    const ingredientsQuery = encodeURIComponent(ingredients.join(','));
+    const embeddingResponse = await fetch(`/api/recommend-by-ingredients?names=${ingredientsQuery}`);
+    
+    // 임베딩 기반 추천이 성공하면 결과 반환
+    if (embeddingResponse.ok) {
+      const embeddingData = await embeddingResponse.json();
+      
+      // 결과가 있으면 반환
+      if (embeddingData && embeddingData.length > 0) {
+        // RecommendedRecipe를 RecipeWithScore 형식으로 변환
+        return embeddingData.map((recipe: RecommendedRecipe) => ({
+          ...recipe,
+          ingredients: recipe.raw_ingredients ? 
+            recipe.raw_ingredients.split(',').map(i => i.trim()) : [],
+          score: {
+            matchCount: 1,
+            matchRatio: recipe.similarity,
+            weightedScore: recipe.similarity,
+            recipeIngredientCoverage: recipe.similarity
+          }
+        }));
+      }
+    }
+    
+    // 임베딩 기반 추천이 실패하거나 결과가 없으면 기존 방식으로 시도
+    const fallbackResponse = await fetch(`/api/recipes/recommend?ingredients=${ingredientsQuery}`);
+    
+    if (!fallbackResponse.ok) {
+      throw new Error(`추천 레시피를 가져오는데 실패했습니다: ${fallbackResponse.status}`);
+    }
+    
+    return await fallbackResponse.json();
+  } catch (error) {
+    console.error('추천 레시피 가져오기 오류:', error);
     return [];
   }
 }

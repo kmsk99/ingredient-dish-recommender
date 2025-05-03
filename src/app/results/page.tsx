@@ -8,7 +8,6 @@ import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import RecipeCard from '@/components/RecipeCard';
 import {
-  getAllIngredients,
   getRecommendedRecipes,
   IngredientWithCount,
   parseUserIngredients,
@@ -25,9 +24,8 @@ export default function ResultsPage() {
   
   // 자동완성 관련 상태
   const [suggestions, setSuggestions] = useState<IngredientWithCount[]>([]);
-  const [allIngredients, setAllIngredients] = useState<IngredientWithCount[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [loadingIngredients, setLoadingIngredients] = useState(true);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const suggestionRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -50,23 +48,6 @@ export default function ResultsPage() {
     fetchRecipes();
   }, [searchParams]);
   
-  // 모든 재료 목록 가져오기
-  useEffect(() => {
-    async function fetchIngredients() {
-      try {
-        setLoadingIngredients(true);
-        const data = await getAllIngredients();
-        setAllIngredients(data);
-        setLoadingIngredients(false);
-      } catch (error) {
-        console.error('재료 목록을 가져오는 중 오류 발생:', error);
-        setLoadingIngredients(false);
-      }
-    }
-
-    fetchIngredients();
-  }, []);
-  
   // 클릭 이벤트 처리를 위한 useEffect
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -81,6 +62,38 @@ export default function ResultsPage() {
     };
   }, []);
 
+  // 검색어에 따라 API에서 재료 추천 목록 가져오기
+  const fetchSuggestions = async (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setLoadingSuggestions(true);
+    try {
+      const params = new URLSearchParams({
+        search: searchTerm,
+        limit: '5' // 최대 5개 추천만 가져오기
+      });
+      
+      const response = await fetch(`/api/ingredients?${params.toString()}`);
+      if (!response.ok) throw new Error('재료 추천을 가져오는데 실패했습니다');
+      
+      const data = await response.json();
+      setSuggestions(data.filter((item: IngredientWithCount) => 
+        !ingredients.includes(item.name)
+      ));
+      setShowSuggestions(data.length > 0);
+    } catch (error) {
+      console.error('재료 추천 가져오기 오류:', error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
   const handleRemoveIngredient = (indexToRemove: number) => {
     const newIngredients = ingredients.filter((_, index) => index !== indexToRemove);
     setIngredients(newIngredients);
@@ -94,16 +107,9 @@ export default function ResultsPage() {
     const value = e.target.value;
     setInputValue(value);
 
+    // 검색어가 1글자 이상일 때 API 호출
     if (value.trim().length > 0) {
-      const filtered = allIngredients
-        .filter(ingredient => 
-          ingredient.name.toLowerCase().includes(value.toLowerCase()) &&
-          !ingredients.includes(ingredient.name)
-        )
-        .slice(0, 5); // 최대 5개 제안만 표시
-      
-      setSuggestions(filtered);
-      setShowSuggestions(filtered.length > 0);
+      fetchSuggestions(value);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -207,7 +213,6 @@ export default function ResultsPage() {
               
               <div className="flex items-center mt-2 relative">
                 <div className="relative flex-grow">
-                  
                   <input
                     type="text"
                     placeholder="재료 추가하기"
@@ -217,6 +222,9 @@ export default function ResultsPage() {
                     ref={inputRef}
                     className="p-2.5 pl-10 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary w-full"
                   />
+
+                  {/* 로딩 인디케이터 */}
+                  {loadingSuggestions && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">로딩 중...</span>}
                 </div>
                 <button
                   type="button"
@@ -239,7 +247,7 @@ export default function ResultsPage() {
                     ref={suggestionRef}
                     className="absolute z-10 w-full bg-white mt-1 border rounded-xl shadow-lg top-[40px] left-0 overflow-hidden"
                   >
-                    {loadingIngredients ? (
+                    {loadingSuggestions ? (
                       <div className="p-3 text-gray-500 text-sm">로딩 중...</div>
                     ) : suggestions.length > 0 ? (
                       <ul>

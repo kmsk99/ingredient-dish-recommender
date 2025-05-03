@@ -58,12 +58,12 @@ export default function RecipePage({ params }: RecipePageProps) {
         const groupContent = match[2].trim();
         
         // '|'로 구분된 각 재료 항목 파싱
-        const items = groupContent.split('|').map(item => {
+        const items = groupContent.split('|').map((item: string) => {
           const trimmedItem = item.trim();
           if (!trimmedItem) return null;
           
           // 공백으로 단어를 분리
-          const parts = trimmedItem.split(' ').filter(p => p.trim());
+          const parts = trimmedItem.split(' ').filter((p: string) => p.trim());
           
           if (parts.length <= 1) {
             return { name: trimmedItem, amount: '' };
@@ -113,12 +113,12 @@ export default function RecipePage({ params }: RecipePageProps) {
       
       // 그룹 매칭이 없는 경우, 전체를 하나의 그룹으로 처리
       if (ingredientGroups.length === 0) {
-        const items = cleanText.split('|').map(item => {
+        const items = cleanText.split('|').map((item: string) => {
           const trimmedItem = item.trim();
           if (!trimmedItem) return null;
           
           // 위와 동일한 로직으로 재료명과 수량 분리
-          const parts = trimmedItem.split(' ').filter(p => p.trim());
+          const parts = trimmedItem.split(' ').filter((p: string) => p.trim());
           
           if (parts.length <= 1) {
             return { name: trimmedItem, amount: '' };
@@ -192,11 +192,11 @@ export default function RecipePage({ params }: RecipePageProps) {
         </button>
         
         <article className="bg-white rounded-2xl overflow-hidden shadow-md">
-          {recipe.imageUrl && (
+          {recipe.image_url && (
             <div className="relative h-80 md:h-96 w-full">
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60 z-10"></div>
               <Image
-                src={recipe.imageUrl}
+                src={recipe.image_url}
                 alt={recipe.title}
                 fill
                 className="w-full object-cover"
@@ -205,6 +205,14 @@ export default function RecipePage({ params }: RecipePageProps) {
                 <h1 className="text-3xl md:text-4xl font-bold text-white">{recipe.title}</h1>
                 
                 <div className="flex flex-wrap items-center gap-3 mt-4">
+                  {recipe.similarity !== undefined && (
+                    <span className="bg-primary/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium text-white flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                      AI 추천 점수: {Math.round(recipe.similarity * 100)}%
+                    </span>
+                  )}
                   {recipe.difficulty && (
                     <span className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium text-white flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -235,7 +243,7 @@ export default function RecipePage({ params }: RecipePageProps) {
           )}
           
           <div className="p-6 md:p-8">
-            {!recipe.imageUrl && (
+            {!recipe.image_url && (
               <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">{recipe.title}</h1>
             )}
             
