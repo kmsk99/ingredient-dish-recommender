@@ -1,3 +1,5 @@
+import { recommendRecipesByIngredients } from './recipe-utils';
+
 // 애플리케이션 전반에서 사용되는 타입 정의
 export interface Recipe {
   id: string;
@@ -92,16 +94,13 @@ export async function getRecommendedRecipes(ingredients: string[]): Promise<Reci
   try {
     if (ingredients.length === 0) return [];
     
-    // 첫 번째로 임베딩 기반 추천 시도
-    const ingredientsQuery = encodeURIComponent(ingredients.join(','));
-    const embeddingResponse = await fetch(`/api/recommend-by-ingredients?names=${ingredientsQuery}`);
-    
-    // 임베딩 기반 추천이 성공하면 결과 반환
-    if (embeddingResponse.ok) {
-      const embeddingData = await embeddingResponse.json();
+    try {
+      const embeddingData = await recommendRecipesByIngredients(ingredients);
       
-      // 결과가 있으면 반환
+      // 임베딩 기반 결과가 있으면 반환
       if (embeddingData && embeddingData.length > 0) {
+        console.log("[클라이언트 임베딩] 추천 성공:", embeddingData.length);
+        
         // RecommendedRecipe를 RecipeWithScore 형식으로 변환
         return embeddingData.map((recipe: RecommendedRecipe) => ({
           ...recipe,
@@ -115,9 +114,16 @@ export async function getRecommendedRecipes(ingredients: string[]): Promise<Reci
           }
         }));
       }
+    } catch (embeddingError) {
+      console.error("[클라이언트 임베딩] 오류:", embeddingError);
+      // 클라이언트 임베딩 추천 실패 시 폴백
     }
     
-    // 임베딩 기반 추천이 실패하거나 결과가 없으면 기존 방식으로 시도
+    // 여기까지 왔다면 클라이언트 임베딩이 실패했으므로 폴백 사용
+    console.log("[클라이언트 임베딩] 폴백 메커니즘 사용");
+    
+    // 기존 서버 API를 폴백으로 사용 (이전 API 유지)
+    const ingredientsQuery = encodeURIComponent(ingredients.join(','));
     const fallbackResponse = await fetch(`/api/recipes/recommend?ingredients=${ingredientsQuery}`);
     
     if (!fallbackResponse.ok) {
