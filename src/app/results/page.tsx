@@ -8,11 +8,11 @@ import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import RecipeCard from '@/components/RecipeCard';
 import {
-  getRecommendedRecipes,
   IngredientWithCount,
   parseUserIngredients,
   RecipeWithScore,
-} from '@/lib/utils';
+} from '@/lib/types';
+import { getRecommendedRecipes } from '@/lib/utils';
 
 export default function ResultsPage() {
   const router = useRouter();
@@ -72,15 +72,13 @@ export default function ResultsPage() {
 
     setLoadingSuggestions(true);
     try {
-      const params = new URLSearchParams({
+      // 클라이언트 함수 사용으로 변경
+      const { searchIngredients } = await import('@/lib/ingredient-utils');
+      const data = await searchIngredients({
         search: searchTerm,
-        limit: '5' // 최대 5개 추천만 가져오기
+        limit: 5 // 최대 5개 추천만 가져오기
       });
       
-      const response = await fetch(`/api/ingredients?${params.toString()}`);
-      if (!response.ok) throw new Error('재료 추천을 가져오는데 실패했습니다');
-      
-      const data = await response.json();
       setSuggestions(data.filter((item: IngredientWithCount) => 
         !ingredients.includes(item.name)
       ));

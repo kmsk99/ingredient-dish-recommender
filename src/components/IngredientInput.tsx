@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
-import { IngredientWithCount } from '@/lib/utils';
+import { IngredientWithCount } from '@/lib/types';
 
 export default function IngredientInput() {
   const [inputValue, setInputValue] = useState('');
@@ -37,15 +37,13 @@ export default function IngredientInput() {
 
     setLoadingSuggestions(true);
     try {
-      const params = new URLSearchParams({
+      // 클라이언트 함수 사용으로 변경
+      const { searchIngredients } = await import('@/lib/ingredient-utils');
+      const data = await searchIngredients({
         search: searchTerm,
-        limit: '5' // 최대 5개 추천만 가져오기
+        limit: 5 // 최대 5개 추천만 가져오기
       });
       
-      const response = await fetch(`/api/ingredients?${params.toString()}`);
-      if (!response.ok) throw new Error('재료 추천을 가져오는데 실패했습니다');
-      
-      const data = await response.json();
       setSuggestions(data.filter((item: IngredientWithCount) => 
         !selectedIngredients.includes(item.name)
       ));

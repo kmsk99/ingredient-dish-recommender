@@ -1,8 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
 
-import { RecipeWithScore } from '@/lib/utils';
+import { RecipeWithScore } from '@/lib/types';
 
 interface RecipeCardProps {
   recipe: RecipeWithScore;
@@ -17,10 +16,6 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
   
   // 재료 일치 개수
   const matchedIngredientsCount = recipe.score.matchCount;
-
-  useEffect(() => {
-    console.log(recipe);
-  }, [recipe]);
   
   return (
     <Link href={`/recipe/${recipe.id}`} className="block group">
@@ -51,7 +46,7 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
         
         <div className="p-5 flex-1 flex flex-col">
           <h3 className="font-bold text-lg line-clamp-1 mb-2 group-hover:text-primary transition-colors">
-            {recipe.shortTitle || recipe.title}
+            {recipe.short_title || recipe.title}
           </h3>
           
           <div className="flex items-center text-sm text-gray-600 mb-3">
@@ -92,13 +87,13 @@ export default function RecipeCard({ recipe, userIngredients }: RecipeCardProps)
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                {recipe.viewCount}
+                {recipe.view_count}
               </span>
               <span className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                 </svg>
-                {recipe.recommendCount}
+                {recipe.recommend_count}
               </span>
             </div>
           </div>

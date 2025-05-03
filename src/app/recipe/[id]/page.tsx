@@ -6,7 +6,8 @@ import { use, useEffect, useState } from 'react';
 
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
-import { getRecipeById, Recipe } from '@/lib/utils';
+import { Recipe } from '@/lib/types';
+import { getRecipeById } from '@/lib/utils';
 
 import Loading from './loading';
 
@@ -45,9 +46,9 @@ export default function RecipePage({ params }: RecipePageProps) {
   const ingredientGroups: IngredientGroup[] = [];
   
   try {
-    if (recipe.rawIngredients) {
+    if (recipe.raw_ingredients) {
       // 유니코드 제어 문자를 공백으로 변환
-      const cleanText = recipe.rawIngredients.replace(/\u0007/g, ' ').trim();
+      const cleanText = recipe.raw_ingredients.replace(/\u0007/g, ' ').trim();
       
       // 재료 그룹 매칭 - [재료], [양념], [고명] 등으로 시작하는 부분을 찾음
       const groupRegex = /\[([^\]]+)\](.*?)(?=\[[^\]]+\]|$)/g;
@@ -171,7 +172,7 @@ export default function RecipePage({ params }: RecipePageProps) {
     if (recipe.ingredients.length > 0) {
       ingredientGroups.push({
         title: '재료',
-        items: recipe.ingredients.map(name => ({ name, amount: '' }))
+        items: recipe.ingredients.map((name: string) => ({ name, amount: '' }))
       });
     }
   }
@@ -205,12 +206,12 @@ export default function RecipePage({ params }: RecipePageProps) {
                 <h1 className="text-3xl md:text-4xl font-bold text-white">{recipe.title}</h1>
                 
                 <div className="flex flex-wrap items-center gap-3 mt-4">
-                  {recipe.similarity !== undefined && (
+                  {recipe.score?.similarity !== undefined && (
                     <span className="bg-primary/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium text-white flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                       </svg>
-                      AI 추천 점수: {Math.round(recipe.similarity * 100)}%
+                      AI 추천 점수: {Math.round(recipe.score?.similarity * 100)}%
                     </span>
                   )}
                   {recipe.difficulty && (
@@ -253,19 +254,19 @@ export default function RecipePage({ params }: RecipePageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                {recipe.viewCount}
+                {recipe.view_count}
               </span>
               <span className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                 </svg>
-                {recipe.recommendCount}
+                {recipe.recommend_count}
               </span>
               <span className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
-                {recipe.scrapCount}
+                {recipe.scrap_count}
               </span>
             </div>
             

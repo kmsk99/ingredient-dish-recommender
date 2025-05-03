@@ -1,88 +1,18 @@
-import { recommendRecipesByIngredients } from './recipe-utils';
-
-// 애플리케이션 전반에서 사용되는 타입 정의
-export interface Recipe {
-  id: string;
-  title: string;
-  short_title?: string;
-  ingredients: string[];
-  raw_ingredients?: string;
-  image_url?: string;
-  description?: string;
-  viewCount?: number;
-  recommendCount?: number;
-  scrapCount?: number;
-  difficulty?: string;
-  time?: string;
-  servings?: string;
-  rawIngredients?: string;
-  similarity?: number; // 임베딩 기반 유사도 점수
-  [key: string]: any; // 기타 속성
-}
-
-export interface RecipeWithScore extends Recipe {
-  score: {
-    matchCount: number;
-    matchRatio: number;
-    weightedScore: number;
-    recipeIngredientCoverage: number;
-    similarity?: number; // 임베딩 기반 유사도 점수
-  };
-}
-
-export interface IngredientWithCount {
-  name: string;
-  count: number;
-}
-
-export interface RecommendedRecipe {
-  id: string;
-  title: string;
-  short_title?: string;
-  raw_ingredients?: string;
-  image_url?: string;
-  similarity: number;
-}
-
-// 문자열이 유효한 URL인지 확인
-export function isValidUrl(url: string): boolean {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// 유사도 점수를 퍼센트로 변환 (소수점 첫째 자리까지)
-export function similarityToPercent(similarity: number): string {
-  return `${Math.round(similarity * 1000) / 10}%`;
-}
-
-// 사용자 입력 재료 문자열을 배열로 파싱
-export function parseUserIngredients(ingredientsStr: string): string[] {
-  if (!ingredientsStr) return [];
-  
-  return ingredientsStr
-    .split(',')
-    .map(item => item.trim())
-    .filter(item => item.length > 0);
-}
+import { MatchRecipeResult, Recipe, RecipeWithScore } from './types';
 
 // ID로 레시피 상세 정보 가져오기
 export async function getRecipeById(id: string): Promise<Recipe | null> {
   try {
-    const response = await fetch(`/api/recipes/${id}`);
+    // recipe-utils.ts의 getRecipeById 함수 사용
+    const { getRecipeById: fetchRecipeById } = await import('./recipe-utils');
+    const recipe = await fetchRecipeById(id);
     
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`레시피 ID ${id}를 찾을 수 없습니다.`);
-        return null;
-      }
-      throw new Error(`레시피를 가져오는데 실패했습니다: ${response.status}`);
+    // RecipeRow에서 Recipe로 변환
+    if (recipe) {
+      return recipe
     }
     
-    return await response.json();
+    return null;
   } catch (error) {
     console.error('레시피 상세 가져오기 오류:', error);
     return null;
@@ -95,22 +25,46 @@ export async function getRecommendedRecipes(ingredients: string[]): Promise<Reci
     if (ingredients.length === 0) return [];
     
     try {
-      const embeddingData = await recommendRecipesByIngredients(ingredients);
+      const { recommendRecipesByIngredients } = await import('./recipe-utils');
       
       // 임베딩 기반 결과가 있으면 반환
+      const embeddingData = await recommendRecipesByIngredients(ingredients);
+      
       if (embeddingData && embeddingData.length > 0) {
         console.log("[클라이언트 임베딩] 추천 성공:", embeddingData.length);
         
-        // RecommendedRecipe를 RecipeWithScore 형식으로 변환
-        return embeddingData.map((recipe: RecommendedRecipe) => ({
-          ...recipe,
+        // MatchRecipeResult를 RecipeWithScore 형식으로 변환
+        return embeddingData.map((recipe: MatchRecipeResult) => ({
+          id: recipe.id,
+          title: recipe.title,
+          short_title: recipe.short_title,
+          image_url: recipe.image_url,
+          raw_ingredients: recipe.raw_ingredients,
+          created_at: '',
+          updated_at: '',
+          description: null,
+          difficulty: null,
+          embedding: null,
+          first_register_date: null,
+          kind: null,
+          material_category: null,
+          method: null,
+          recommend_count: null,
+          register_id: null,
+          register_name: null,
+          scrap_count: null,
+          servings: null,
+          situation: null,
+          time: null,
+          view_count: null,
           ingredients: recipe.raw_ingredients ? 
             recipe.raw_ingredients.split(',').map(i => i.trim()) : [],
           score: {
             matchCount: 1,
             matchRatio: recipe.similarity,
             weightedScore: recipe.similarity,
-            recipeIngredientCoverage: recipe.similarity
+            recipeIngredientCoverage: recipe.similarity,
+            similarity: recipe.similarity
           }
         }));
       }
@@ -122,15 +76,9 @@ export async function getRecommendedRecipes(ingredients: string[]): Promise<Reci
     // 여기까지 왔다면 클라이언트 임베딩이 실패했으므로 폴백 사용
     console.log("[클라이언트 임베딩] 폴백 메커니즘 사용");
     
-    // 기존 서버 API를 폴백으로 사용 (이전 API 유지)
-    const ingredientsQuery = encodeURIComponent(ingredients.join(','));
-    const fallbackResponse = await fetch(`/api/recipes/recommend?ingredients=${ingredientsQuery}`);
-    
-    if (!fallbackResponse.ok) {
-      throw new Error(`추천 레시피를 가져오는데 실패했습니다: ${fallbackResponse.status}`);
-    }
-    
-    return await fallbackResponse.json();
+    // recommendRecipesByBasicMatching 함수 사용
+    const { recommendRecipesByBasicMatching } = await import('./recipe-utils');
+    return await recommendRecipesByBasicMatching(ingredients);
   } catch (error) {
     console.error('추천 레시피 가져오기 오류:', error);
     return [];
