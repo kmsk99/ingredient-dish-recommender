@@ -320,23 +320,38 @@ export function normalizeEmbedding(embedding: number[]): number[] {
  */
 export async function findSimilarRecipes(
   embedding: number[], 
-  threshold: number = 0.05, // 임계값을 높여 더 유사한 항목만 반환
-  limit: number = 15
+  threshold: number = 0.7, // 임계값을 0.7로 높여 더 유사한 항목만 반환
+  limit: number = 20,
+  decrementStep: number = 0.1, // threshold 감소 단계
+  minResults: number = 10 // 최소 결과 개수
 ): Promise<MatchRecipeResult[]> {
   try {
-    // RPC 함수 호출 - 타임아웃을 방지하기 위해 매개변수 조정
-    const { data, error } = await supabase.rpc('match_recipes', {
-      query_embedding: embedding,
-      match_threshold: threshold,
-      match_count: limit
-    });
+    let currentThreshold = threshold;
+    let results: MatchRecipeResult[] = [];
+    
+    // 결과가 최소 개수보다 적으면 threshold를 낮추면서 다시 시도
+    while (currentThreshold >= 0.3 && results.length < minResults) {
+      // RPC 함수 호출 - 타임아웃을 방지하기 위해 매개변수 조정
+      const { data, error } = await supabase.rpc('match_recipes', {
+        query_embedding: embedding,
+        match_threshold: currentThreshold,
+        match_count: limit
+      });
 
-    if (error) {
-      console.error("레시피 매칭 오류:", error);
-      return [];
+      if (error) {
+        console.error(`레시피 매칭 오류 (threshold: ${currentThreshold}):`, error);
+        break; // 오류 발생 시 반복 중단
+      } else {
+        results = data || [];
+        if (results.length < minResults) {
+          console.log(`threshold ${currentThreshold}에서 결과 ${results.length}개, 목표 ${minResults}개, ${decrementStep} 낮춰서 재시도`);
+          currentThreshold -= decrementStep;
+        }
+      }
     }
 
-    return data || [];
+    console.log(`최종 threshold: ${results.length > 0 ? currentThreshold + decrementStep : currentThreshold}, 결과: ${results.length}개`);
+    return results;
   } catch (error) {
     console.error("레시피 검색 중 오류:", error);
     return [];
@@ -396,8 +411,8 @@ export async function recommendRecipesByIngredients(
     const normalizedEmbedding = normalizeEmbedding(averageEmbedding);
     
     try {
-      // 4. 유사 레시피 조회
-      const results = await findSimilarRecipes(normalizedEmbedding);
+      // 4. 유사 레시피 조회 - 초기 threshold 0.7로 시작하여 결과가 10개 미만이면 0.1씩 감소
+      const results = await findSimilarRecipes(normalizedEmbedding, 0.7, 20, 0.1, 10);
       if (results && results.length > 0) {
         return results;
       } else {
