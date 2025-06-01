@@ -26,29 +26,33 @@ AI 기반 재료-요리 추천 서비스로, 사용자가 보유한 식재료를
 
 ### 🤖 하이브리드 AI 추천 시스템
 
-#### 1차: BERT 임베딩 기반 추천
+#### 통합형 하이브리드: 병렬 처리 및 점수 융합
+- **동시 처리**: 임베딩 기반 추천과 정확한 재료 매칭의 병렬 실행
+- **상호 보완**: 각 추천 결과에 대해 상대방 방식의 점수를 추가 계산
+- **균형적 융합**: 두 방식의 점수를 동등한 비율로 결합하여 최적화된 결과 도출
+
+#### 1단계: BERT 임베딩 기반 추천 (20개)
 - **의미적 유사도**: BERT 모델을 통한 재료 간 의미 분석
 - **벡터 유사도 계산**: 코사인 유사도로 레시피 매칭
-- **동적 임계값 조정**: 결과 품질에 따른 임계값 자동 조정 (0.6 → 0.3)
+- **적응적 임계값 조정**: 결과 품질에 따른 임계값 자동 조정 (0.3 시작)
 
-#### 2차: 정확한 재료 매칭 (Fallback)
+#### 2단계: 정확한 재료 매칭 (20개)
 - **3단계 매칭 프로세스**:
   1. 실제 재료 테이블에서 일치하는 재료 검색
-  2. 해당 재료를 포함하는 레시피 조회
-  3. 가중치 기반 점수 계산
+  2. 해당 재료를 포함하는 레시피 조회 (최대 120개)
+  3. 정규화된 가중치 점수 계산
 
-- **고도화된 점수 계산 시스템**:
+- **정규화된 점수 계산 시스템** (0-1 범위):
   ```
-  가중치 점수 = (매칭 개수 × 2.0) + (사용자 재료 활용도 × 1.5) + (레시피 완성도 × 1.0)
+  가중치 점수 = (매칭 비율 × 0.4) + (사용자 재료 활용도 × 0.35) + (레시피 완성도 × 0.25)
   ```
 
-#### 하이브리드 알고리즘 흐름
+#### 3단계: 하이브리드 점수 통합
 ```
-재료 입력 → BERT 임베딩 추천 시도 → 결과 충분? 
-   ↓                                    ↓ (Yes)
-   결과 부족 시                          추천 완료
-   ↓                                    
-   정확한 재료 매칭으로 전환 → 추천 완료
+임베딩 결과 → 각각에 기본 매칭 점수 추가 계산
+기본 결과 → 각각에 임베딩 점수 추가 계산
+최종 점수 = (임베딩 점수 × 0.5) + (기본 매칭 점수 × 0.5)
+상위 20개 선별 → 최종 추천
 ```
 
 ### 📊 투명한 추천 결과
@@ -198,6 +202,26 @@ src/
 
 ## 🧠 AI 추천 시스템 상세
 
+### 하이브리드 추천 엔진
+```typescript
+// 1단계: 임베딩과 기본 매칭 동시 실행
+const [embeddingResults, basicResults] = await Promise.all([
+  findSimilarRecipes(userEmbedding, 0.3, 20),  // 임베딩 20개
+  recommendRecipesByBasicMatching(ingredients)  // 기본 매칭 20개
+]);
+
+// 2단계: 상호 점수 계산
+for (const recipe of embeddingResults) {
+  const basicScore = await calculateBasicScoreForRecipe(recipe.id, ingredients);
+  recipe.finalScore = (recipe.similarity * 0.5) + (basicScore * 0.5);
+}
+
+for (const recipe of basicResults) {
+  const embeddingScore = await calculateEmbeddingScoreForRecipe(recipe.id, userEmbedding);
+  recipe.finalScore = (recipe.score.weightedScore * 0.5) + (embeddingScore * 0.5);
+}
+```
+
 ### BERT 임베딩 기반 추천
 ```typescript
 // 재료 임베딩 벡터 조회
@@ -208,7 +232,7 @@ const avgEmbedding = calculateAverageEmbedding(validEmbeddings);
 
 // 정규화 및 유사도 검색
 const normalized = normalizeEmbedding(avgEmbedding);
-const results = await findSimilarRecipes(normalized, threshold);
+const results = await findSimilarRecipes(normalized, 0.3, 20);
 ```
 
 ### 정확한 재료 매칭 시스템
@@ -225,12 +249,27 @@ const recipeIds = await supabase
   .select('recipe_id, ingredient_id')
   .in('ingredient_id', matchingIngredientIds);
 
-// 3단계: 가중치 점수 계산
+// 3단계: 정규화된 가중치 점수 계산 (0-1 범위)
 const weightedScore = (
-  matchCount * 2 + 
-  userIngredientCoverage * 1.5 + 
-  recipeIngredientCoverage * 1.0
-) / (2 + 1.5 + 1.0);
+  matchRatio * 0.4 +                    // 매칭 비율 (40%)
+  userIngredientCoverage * 0.35 +       // 사용자 재료 활용도 (35%)
+  recipeIngredientCoverage * 0.25       // 레시피 완성도 (25%)
+);
+```
+
+### 최적화된 DB 함수
+```sql
+-- 개별 레시피 임베딩 점수 계산 (성능 최적화)
+CREATE FUNCTION calculate_recipe_similarity(
+  recipe_id TEXT,
+  query_embedding vector(768)
+) RETURNS float
+AS $$
+  SELECT CASE 
+    WHEN r.embedding IS NOT NULL THEN 1 - (r.embedding <=> query_embedding)
+    ELSE 0.0
+  END FROM recipes r WHERE r.id = recipe_id;
+$$;
 ```
 
 ## 📊 성능 최적화
@@ -238,10 +277,17 @@ const weightedScore = (
 ### 데이터베이스 최적화
 - **인덱싱**: 재료명 및 레시피 ID에 대한 복합 인덱스
 - **벡터 검색**: pgvector를 통한 고속 유사도 계산
+- **새로운 RPC 함수**: 개별 레시피 점수 계산 전용 함수로 성능 향상
 - **쿼리 최적화**: JOIN 쿼리 최소화 및 필요한 컬럼만 선택
 
+### 하이브리드 시스템 최적화
+- **병렬 처리**: 임베딩과 기본 매칭의 동시 실행을 통한 응답 시간 최적화
+- **결과 제한**: 각 방식당 20개씩 처리하여 계산 복잡도 최적화
+- **정규화된 점수**: 0-1 범위 정규화를 통한 일관된 점수 체계 구축
+- **균형적 융합**: 1:1 비율의 과학적 하이브리드 점수 산출
+
 ### 프론트엔드 최적화
-- **병렬 처리**: 독립적인 작업의 동시 실행
+- **한국어 IME 처리**: 조합 중 API 호출 방지로 불필요한 요청 차단
 - **Turbopack**: Next.js 15의 차세대 번들러 활용
 - **코드 스플리팅**: 페이지별 자동 코드 분할
 - **이미지 최적화**: Next.js Image 컴포넌트 활용
@@ -274,7 +320,7 @@ console.log(`[추천 시스템] 발견된 재료: ${matchingIngredients.map(i =>
 - 접근성 표준 준수
 - 성능 최적화 고려
 
-## 🎨 디자인 시스템
+## 🎯 디자인 시스템
 
 ### 컬러 팔레트
 ```css
