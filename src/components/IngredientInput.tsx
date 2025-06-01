@@ -12,6 +12,7 @@ export default function IngredientInput() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [noMatchMessage, setNoMatchMessage] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
   
   const suggestionRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,24 +69,44 @@ export default function IngredientInput() {
     }
   };
 
-  // 입력 변경 처리 (자동완성)
+  // 한글 조합 시작
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  // 한글 조합 업데이트
+  const handleCompositionUpdate = () => {
+    setIsComposing(true);
+  };
+
+  // 한글 조합 종료
+  const handleCompositionEnd = (e: React.CompositionEvent<HTMLInputElement>) => {
+    setIsComposing(false);
+    // 조합 종료 후 검색 실행
+    const value = e.currentTarget.value;
+    if (value.trim().length > 0) {
+      fetchSuggestions(value);
+    }
+  };
+
+  // 입력 변경 처리 (자동완성) - 조합 중이 아닐 때만 검색
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
 
-    // 검색어가 1글자 이상일 때 API 호출
-    if (value.trim().length > 0) {
+    // 한글 조합 중이 아닐 때만 API 호출
+    if (!isComposing && value.trim().length > 0) {
       fetchSuggestions(value);
-    } else {
+    } else if (!isComposing && value.trim().length === 0) {
       setSuggestions([]);
       setShowSuggestions(false);
       setNoMatchMessage('');
     }
   };
 
-  // 엔터키 처리 - DB에 있는 재료만 선택 가능
+  // 엔터키 처리 - 한글 조합 중이 아닐 때만 처리
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !isComposing) {
       e.preventDefault();
       // 첫 번째 제안이 있는 경우에만 선택
       if (suggestions.length > 0) {
@@ -187,6 +208,9 @@ export default function IngredientInput() {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 onFocus={() => { if (inputValue.trim()) setShowSuggestions(true); }}
+                onCompositionStart={handleCompositionStart}
+                onCompositionUpdate={handleCompositionUpdate}
+                onCompositionEnd={handleCompositionEnd}
                 ref={inputRef}
                 className="w-full pl-10 pr-10 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-3 focus:ring-primary/20 transition-all duration-300 bg-white/70 backdrop-blur-sm"
                 autoComplete="off"
