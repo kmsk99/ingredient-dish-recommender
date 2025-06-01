@@ -147,6 +147,10 @@ export type Database = {
         Args: { "": string } | { "": unknown };
         Returns: unknown;
       };
+      calculate_recipe_similarity: {
+        Args: { recipe_id: string; query_embedding: string };
+        Returns: number;
+      };
       halfvec_avg: {
         Args: { "": number[] };
         Returns: unknown;
