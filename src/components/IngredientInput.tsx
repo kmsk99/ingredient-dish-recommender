@@ -182,7 +182,7 @@ export default function IngredientInput() {
               <input
                 id="ingredients"
                 type="text"
-                placeholder="재료 이름으로 검색하세요 (예: 돼지고기, 김치)"
+                placeholder="재료 이름으로 검색하세요 (예: 돼지고기, 두부)"
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
