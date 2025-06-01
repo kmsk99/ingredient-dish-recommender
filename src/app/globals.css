@@ -1,8 +1,10 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #FFFBF5;
-  --foreground: #333333;
+  --background: linear-gradient(135deg, #FFF8F0 0%, #FFEEE4 100%);
+  --foreground: #2D3748;
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-hover: rgba(255, 255, 255, 0.8);
 }
 
 @theme inline {
@@ -10,25 +12,40 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-pretendard);
 
-  --color-primary: #E94057;
-  --color-primary-hover: #D63447;
-  --color-secondary: #36B37E;
-  --color-secondary-hover: #2E9D6A;
-  --color-accent: #FFB900;
+  /* 따뜻하고 현대적인 컬러 팔레트 */
+  --color-primary: #FF6B47;
+  --color-primary-hover: #FF5722;
+  --color-primary-light: #FFE5E0;
+  --color-secondary: #4ECDC4;
+  --color-secondary-hover: #26C6DA;
+  --color-secondary-light: #E0F7F5;
+  --color-accent: #FFA726;
+  --color-accent-light: #FFF3E0;
   
-  --color-gray-10: #333333;
-  --color-gray-20: #4D4D4D;
-  --color-gray-30: #666666;
-  --color-gray-40: #808080;
-  --color-gray-50: #A3A3A3;
-  --color-gray-60: #CCCCCC;
-  --color-gray-70: #E0E0E0;
-  --color-gray-80: #EFEFEF;
-  --color-gray-90: #F7F7F7;
-  --color-gray-95: #FBFBFB;
-  --color-gray-98: #FDFDFD;
+  /* 세련된 그레이 스케일 */
+  --color-gray-10: #1A202C;
+  --color-gray-20: #2D3748;
+  --color-gray-30: #4A5568;
+  --color-gray-40: #718096;
+  --color-gray-50: #A0AEC0;
+  --color-gray-60: #CBD5E0;
+  --color-gray-70: #E2E8F0;
+  --color-gray-80: #EDF2F7;
+  --color-gray-90: #F7FAFC;
+  --color-gray-95: #FAFBFC;
+  --color-gray-98: #FDFDFE;
 
+  /* 고급스러운 보더 라디우스 */
+  --border-radius-sm: 0.5rem;
   --border-radius: 1rem;
+  --border-radius-lg: 1.5rem;
+  --border-radius-xl: 2rem;
+
+  /* 부드러운 그림자 */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.15);
 }
 
 @font-face {
@@ -43,24 +60,65 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 기본 요소 스타일링 */
+/* 글로벌 스타일 개선 */
+* {
+  box-sizing: border-box;
+}
+
+/* 고급스러운 버튼 스타일 */
 button, 
 .button {
   border-radius: var(--border-radius);
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  cursor: pointer;
 }
 
+button:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+button:hover:before {
+  left: 100%;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button:disabled:before {
+  display: none;
+}
+
+/* 세련된 입력 필드 스타일 */
 input, 
 textarea, 
 select {
   border-radius: var(--border-radius);
-  border: 1px solid var(--color-gray-70);
-  padding: 0.75rem 1rem;
-  transition: all 0.2s ease;
+  border: 2px solid var(--color-gray-70);
+  padding: 1rem 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 input:focus, 
@@ -68,26 +126,123 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(233, 64, 87, 0.1);
+  box-shadow: 0 0 0 4px var(--color-primary-light);
+  transform: translateY(-1px);
 }
 
-/* 음식 느낌 강조를 위한 추가 스타일 */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-gray-50);
+  font-weight: 400;
+}
+
+/* 카드 컴포넌트 향상 */
+.card {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .card-hover {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-hover:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-xl);
+  border-color: rgba(255, 107, 71, 0.3);
 }
 
 .recipe-card {
-  border-radius: var(--border-radius);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .recipe-card:hover {
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-12px);
+  box-shadow: var(--shadow-xl);
+  border-color: rgba(255, 107, 71, 0.4);
+}
+
+/* 태그 스타일 향상 */
+.ingredient-tag {
+  background: linear-gradient(135deg, var(--color-secondary-light), rgba(78, 205, 196, 0.1));
+  color: var(--color-secondary-hover);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.ingredient-tag:hover {
+  background: linear-gradient(135deg, var(--color-secondary), rgba(78, 205, 196, 0.9));
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+/* 로딩 애니메이션 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-gray-90);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-accent));
+}
+
+/* 현대적인 그라데이션 배경 */
+.gradient-bg {
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 71, 0.1) 0%, 
+    rgba(78, 205, 196, 0.1) 50%, 
+    rgba(255, 167, 38, 0.1) 100%
+  );
+}
+
+/* 유리형 효과 */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+/* 어두운 모드 지원 준비 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
+    --foreground: #E2E8F0;
+    --surface: rgba(30, 41, 59, 0.95);
+    --surface-hover: rgba(30, 41, 59, 0.8);
+  }
 }
