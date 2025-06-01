@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { IngredientWithCount, Recipe } from './types';
+import { IngredientWithCount } from './types';
 
 /**
  * 재료 검색
@@ -51,50 +51,4 @@ export async function searchIngredients(options: {
     console.error('재료 검색 중 오류:', error);
     return [];
   }
-}
-
-/**
- * 새 재료 생성
- */
-export async function createIngredient(name: string): Promise<{ id: string; name: string } | null> {
-  try {
-    const { data, error } = await supabase
-      .from('ingredients')
-      .insert({
-        name: name.trim()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('재료 생성 오류:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('재료 생성 중 오류:', error);
-    return null;
-  }
-}
-
-/**
- * 모든 레시피에서 재료 목록 추출 (서버 함수 대체용)
- */
-export async function getAllIngredientsFromRecipes(recipes: Recipe[]): Promise<IngredientWithCount[]> {
-  // 모든 레시피에서 재료를 추출하고 카운트
-  const ingredientCounts = new Map<string, number>();
-  
-  recipes.forEach(recipe => {
-    recipe.ingredients.forEach((ingredient: string) => {
-      const trimmedIngredient = ingredient.trim();
-      const currentCount = ingredientCounts.get(trimmedIngredient) || 0;
-      ingredientCounts.set(trimmedIngredient, currentCount + 1);
-    });
-  });
-  
-  // 이름과 카운트를 객체 배열로 변환
-  return Array.from(ingredientCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count); // 사용 횟수가 많은 순으로 정렬
 } 

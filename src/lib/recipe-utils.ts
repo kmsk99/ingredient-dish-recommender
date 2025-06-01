@@ -111,7 +111,7 @@ export async function getRecipeById(id: string): Promise<RecipeRow | null> {
 }
 
 /**
- * 기본 레시피 추천 함수 (재료 기반 매칭)
+ * 향상된 레시피 추천 함수 (정확한 재료 매칭 기반)
  */
 export async function recommendRecipesByBasicMatching(ingredients: string[]): Promise<RecipeWithScore[]> {
   try {
@@ -119,18 +119,67 @@ export async function recommendRecipesByBasicMatching(ingredients: string[]): Pr
       return [];
     }
     
-    // 재료 이름을 소문자로 변환하고 공백 제거
+    console.log(`[추천 시스템] 검색 재료: ${ingredients.join(', ')}`);
+    
+    // 재료 이름을 정규화
     const normalizedUserIngredients = ingredients.map(ing => 
-      ing.toLowerCase().trim()
+      ing.toLowerCase().trim().replace(/\s+/g, '')
     );
     
-    // 효율적인 쿼리를 위해 LIKE 검색을 위한 패턴 생성
-    const ingredientPatterns = normalizedUserIngredients.map(ing => 
-      `raw_ingredients.ilike.%${ing.replace(/%/g, '\\%')}%`
-    );
+    // 1단계: 실제 재료 테이블에서 일치하는 재료 찾기
+    const { data: matchingIngredients, error: ingredientError } = await supabase
+      .from('ingredients')
+      .select('id, name')
+      .or(normalizedUserIngredients.map(ing => 
+        `name.ilike.%${ing}%`
+      ).join(','));
     
-    // 쿼리 실행
-    const { data, error } = await supabase
+    if (ingredientError) {
+      console.error('재료 검색 오류:', ingredientError);
+      return [];
+    }
+    
+    if (!matchingIngredients || matchingIngredients.length === 0) {
+      console.log('[추천 시스템] 일치하는 재료가 없습니다.');
+      return [];
+    }
+    
+    console.log(`[추천 시스템] 발견된 재료: ${matchingIngredients.map(i => i.name).join(', ')}`);
+    
+    const matchingIngredientIds = matchingIngredients.map(ing => ing.id);
+    
+    // 2단계: 해당 재료를 포함하는 레시피 검색
+    const { data: recipeIds, error: recipeIdError } = await supabase
+      .from('recipe_ingredients')
+      .select('recipe_id, ingredient_id')
+      .in('ingredient_id', matchingIngredientIds);
+    
+    if (recipeIdError) {
+      console.error('레시피-재료 매핑 조회 오류:', recipeIdError);
+      return [];
+    }
+    
+    if (!recipeIds || recipeIds.length === 0) {
+      console.log('[추천 시스템] 해당 재료를 사용하는 레시피가 없습니다.');
+      return [];
+    }
+    
+    // 레시피별 매칭된 재료 수 계산
+    const recipeIngredientCounts = new Map<string, Set<string>>();
+    recipeIds.forEach(({ recipe_id, ingredient_id }) => {
+      if (!recipeIngredientCounts.has(recipe_id)) {
+        recipeIngredientCounts.set(recipe_id, new Set());
+      }
+      recipeIngredientCounts.get(recipe_id)!.add(ingredient_id);
+    });
+    
+    // 적어도 1개 이상의 재료가 매칭되는 레시피만 선별
+    const uniqueRecipeIds = Array.from(recipeIngredientCounts.keys());
+    
+    console.log(`[추천 시스템] 후보 레시피 수: ${uniqueRecipeIds.length}`);
+    
+    // 3단계: 레시피 상세 정보 조회
+    const { data: recipes, error: recipeError } = await supabase
       .from('recipes')
       .select(`
         *,
@@ -141,61 +190,79 @@ export async function recommendRecipesByBasicMatching(ingredients: string[]): Pr
           )
         )
       `)
-      .or(ingredientPatterns.join(','))
-      .limit(20);
+      .in('id', uniqueRecipeIds)
+      .limit(50); // 너무 많은 결과 방지
     
-    if (error) {
-      console.error('추천 레시피 검색 오류:', error);
+    if (recipeError) {
+      console.error('레시피 상세 조회 오류:', recipeError);
       return [];
     }
     
-    if (!data || data.length === 0) {
+    if (!recipes || recipes.length === 0) {
       return [];
     }
     
-    // 데이터 구조 변환 및 스코어 계산
-    const recipesWithScore = data.map(recipe => {
+    // 4단계: 점수 계산 및 정렬
+    const recipesWithScore = recipes.map(recipe => {
       const recipeIngredients = recipe.recipe_ingredients.map(
-        (ri: { ingredient: { name: string } }) => ri.ingredient.name.toLowerCase().trim()
+        (ri: { ingredient: { name: string, id: string } }) => ({
+          id: ri.ingredient.id,
+          name: ri.ingredient.name.toLowerCase().trim()
+        })
       );
       
-      // 사용자 재료 중 레시피에 포함된 재료 수
-      const matchingIngredients = normalizedUserIngredients.filter(userIng => 
-        recipeIngredients.some((recipeIng: string) => recipeIng.includes(userIng))
+      // 사용자 재료와 매칭되는 레시피 재료 찾기
+      const matchingRecipeIngredients = recipeIngredients.filter((recipeIng: { id: string; name: string }) => 
+        normalizedUserIngredients.some(userIng => {
+          const normalizedRecipeIng = recipeIng.name.replace(/\s+/g, '');
+          return normalizedRecipeIng.includes(userIng) || userIng.includes(normalizedRecipeIng);
+        })
       );
       
-      const matchCount = matchingIngredients.length;
-      const recipeIngredientCoverage = recipeIngredients.length > 0 
-        ? matchingIngredients.length / recipeIngredients.length 
-        : 0;
+      const matchCount = matchingRecipeIngredients.length;
+      const totalRecipeIngredients = recipeIngredients.length;
+      const totalUserIngredients = normalizedUserIngredients.length;
       
-      const score = {
-        matchCount,
-        matchRatio: matchCount / normalizedUserIngredients.length,
-        recipeIngredientCoverage: Math.round(recipeIngredientCoverage * 100) / 100,
-        // 가중치를 주어 정렬 (일치하는 재료가 많을수록, 레시피 재료가 적을수록 상위에 표시)
-        weightedScore: matchCount / Math.max(1, recipeIngredients.length)
-      };
+      // 매칭 비율 계산
+      const userIngredientCoverage = matchCount / totalUserIngredients; // 사용자 재료 중 얼마나 사용되었는가
+      const recipeIngredientCoverage = matchCount / totalRecipeIngredients; // 레시피 재료 중 얼마나 보유하고 있는가
+      
+      // 가중 점수 계산 (매칭 개수 + 커버리지 고려)
+      const weightedScore = (
+        matchCount * 2 + // 매칭 개수에 높은 가중치
+        userIngredientCoverage * 1.5 + // 사용자 재료 활용도
+        recipeIngredientCoverage * 1.0 // 레시피 완성도
+      ) / (2 + 1.5 + 1.0); // 정규화
       
       return { 
         ...recipe, 
-        ingredients: recipeIngredients,
-        score
+        ingredients: recipeIngredients.map((ri: { id: string; name: string }) => ri.name),
+        score: {
+          matchCount,
+          matchRatio: userIngredientCoverage,
+          recipeIngredientCoverage,
+          weightedScore
+        }
       };
     });
     
-    // 매칭되는 재료가 하나도 없는 레시피는 제외
+    // 매칭되는 재료가 없는 레시피 제거
     const filteredRecipes = recipesWithScore.filter(recipe => recipe.score.matchCount > 0);
     
-    // 가중치 점수로 정렬
-    return filteredRecipes.sort((a, b) => {
-      // 먼저 일치하는 재료 수로 정렬
+    console.log(`[추천 시스템] 필터링 후 레시피 수: ${filteredRecipes.length}`);
+    
+    // 가중치 점수로 정렬 (높은 점수 우선)
+    const sortedRecipes = filteredRecipes.sort((a, b) => {
+      // 1차: 매칭된 재료 수
       if (b.score.matchCount !== a.score.matchCount) {
         return b.score.matchCount - a.score.matchCount;
       }
-      // 일치하는 재료 수가 같으면 가중치 점수로 정렬
+      // 2차: 가중치 점수
       return b.score.weightedScore - a.score.weightedScore;
     });
+    
+    // 상위 20개만 반환
+    return sortedRecipes.slice(0, 20);
   } catch (error) {
     console.error('기본 레시피 추천 중 오류:', error);
     return [];
@@ -203,54 +270,25 @@ export async function recommendRecipesByBasicMatching(ingredients: string[]): Pr
 }
 
 /**
- * 재료 이름 배열을 기반으로 임베딩 벡터 조회
+ * 재료 임베딩 조회
  */
 export async function getIngredientsEmbeddings(ingredientNames: string[]): Promise<IngredientEmbedding[]> {
   try {
-    // 재료 이름이 비어있으면 빈 배열 반환
     if (!ingredientNames || ingredientNames.length === 0) {
-      console.log("재료 이름이 제공되지 않았습니다.");
       return [];
     }
 
-    // 재료 이름을 소문자로 변환
-    const normalizedNames = ingredientNames.map(name => name.trim().toLowerCase());
-
-    // Supabase에서 재료 임베딩 조회
-    const { data: ingredientEmbeddings, error } = await supabase
+    const { data, error } = await supabase
       .from('ingredients')
       .select('name, embedding')
-      .or(normalizedNames.map(name => `name.ilike.${name}`).join(','));
+      .in('name', ingredientNames);
 
     if (error) {
-      console.error("임베딩 조회 오류:", error);
+      console.error("재료 임베딩 조회 오류:", error);
       return [];
     }
 
-    if (!ingredientEmbeddings || ingredientEmbeddings.length === 0) {
-      console.log("임베딩을 찾을 수 없습니다.");
-      return [];
-    }
-
-    // 조회된 임베딩 처리 (문자열 임베딩을 배열로 변환)
-    return ingredientEmbeddings.map(item => {
-      let processedEmbedding = item.embedding;
-      
-      // 문자열 임베딩을 배열로 변환
-      if (item.embedding && typeof item.embedding === 'string') {
-        try {
-          processedEmbedding = JSON.parse(item.embedding);
-        } catch (e) {
-          console.error(`"${item.name}" 임베딩 파싱 오류:`, e);
-          processedEmbedding = null;
-        }
-      }
-      
-      return {
-        name: item.name,
-        embedding: Array.isArray(processedEmbedding) ? processedEmbedding : null
-      };
-    });
+    return data || [];
   } catch (error) {
     console.error("재료 임베딩 조회 중 오류:", error);
     return [];
@@ -262,14 +300,11 @@ export async function getIngredientsEmbeddings(ingredientNames: string[]): Promi
  */
 export function calculateAverageEmbedding(embeddings: number[][]): number[] | null {
   if (!embeddings || embeddings.length === 0) {
-    console.log("임베딩 배열이 비어있습니다.");
     return null;
   }
   
-  // 모든 벡터의 길이가 동일한지 확인
   const vectorLength = embeddings[0]?.length ?? 0;
   if (vectorLength === 0) {
-    console.log("첫 번째 임베딩 벡터의 길이가 0입니다.");
     return null;
   }
 
@@ -297,41 +332,34 @@ export function calculateAverageEmbedding(embeddings: number[][]): number[] | nu
 }
 
 /**
- * 벡터 정규화 (길이가 1인 벡터로 변환)
+ * 벡터 정규화
  */
 export function normalizeEmbedding(embedding: number[]): number[] {
-  // 벡터의 크기(magnitude) 계산
   const magnitude = Math.sqrt(
     embedding.reduce((sum, val) => sum + val * val, 0)
   );
   
-  // 0으로 나누기 방지
   if (magnitude === 0) {
-    console.log("임베딩 벡터의 크기가 0입니다.");
     return embedding;
   }
   
-  // 각 요소를 크기로 나누어 정규화
   return embedding.map(val => val / magnitude);
 }
 
 /**
- * 임베딩 벡터로 유사한 레시피 조회
+ * 임베딩 벡터로 유사한 레시피 조회 (개선된 버전)
  */
 export async function findSimilarRecipes(
   embedding: number[], 
-  threshold: number = 0.7, // 임계값을 0.7로 높여 더 유사한 항목만 반환
-  limit: number = 20,
-  decrementStep: number = 0.1, // threshold 감소 단계
-  minResults: number = 10 // 최소 결과 개수
+  threshold: number = 0.6,
+  limit: number = 20
 ): Promise<MatchRecipeResult[]> {
   try {
     let currentThreshold = threshold;
     let results: MatchRecipeResult[] = [];
     
-    // 결과가 최소 개수보다 적으면 threshold를 낮추면서 다시 시도
-    while (currentThreshold >= 0.3 && results.length < minResults) {
-      // RPC 함수 호출 - 타임아웃을 방지하기 위해 매개변수 조정
+    // threshold를 단계적으로 낮춰가며 최소 5개 이상의 결과 확보
+    while (currentThreshold >= 0.3 && results.length < 5) {
       const { data, error } = await supabase.rpc('match_recipes', {
         query_embedding: embedding,
         match_threshold: currentThreshold,
@@ -340,17 +368,18 @@ export async function findSimilarRecipes(
 
       if (error) {
         console.error(`레시피 매칭 오류 (threshold: ${currentThreshold}):`, error);
-        break; // 오류 발생 시 반복 중단
+        break;
+      }
+      
+      results = data || [];
+      if (results.length < 5 && currentThreshold > 0.3) {
+        currentThreshold -= 0.1;
       } else {
-        results = data || [];
-        if (results.length < minResults) {
-          console.log(`threshold ${currentThreshold}에서 결과 ${results.length}개, 목표 ${minResults}개, ${decrementStep} 낮춰서 재시도`);
-          currentThreshold -= decrementStep;
-        }
+        break;
       }
     }
 
-    console.log(`최종 threshold: ${results.length > 0 ? currentThreshold + decrementStep : currentThreshold}, 결과: ${results.length}개`);
+    console.log(`[임베딩 추천] 최종 threshold: ${currentThreshold}, 결과: ${results.length}개`);
     return results;
   } catch (error) {
     console.error("레시피 검색 중 오류:", error);
@@ -359,93 +388,53 @@ export async function findSimilarRecipes(
 }
 
 /**
- * 재료 이름으로 레시피 추천 - 전체 프로세스
+ * 재료 이름으로 레시피 추천 - 임베딩 + 기본 매칭 하이브리드
  */
 export async function recommendRecipesByIngredients(
   ingredientNames: string[]
 ): Promise<MatchRecipeResult[]> {
   try {
-    // 1. 재료 임베딩 조회
-    const ingredientEmbeddings = await getIngredientsEmbeddings(ingredientNames);
+    console.log(`[하이브리드 추천] 시작: ${ingredientNames.join(', ')}`);
     
-    // 유효한 임베딩만 필터링
-    const validEmbeddings = ingredientEmbeddings
-      .filter(item => item.embedding !== null)
-      .map(item => item.embedding as number[]);
-    
-    if (validEmbeddings.length === 0) {
-      console.log("유효한 임베딩이 없습니다. 기본 매칭으로 전환합니다.");
-      // 임베딩이 없는 경우 기본 매칭 방식으로 대체
-      const basicResults = await recommendRecipesByBasicMatching(ingredientNames);
-      
-      // 결과 형식 변환
-      return basicResults.map(item => ({
-        id: item.id,
-        title: item.title,
-        short_title: item.short_title || '',
-        raw_ingredients: item.raw_ingredients || '',
-        image_url: item.image_url || '',
-        similarity: item.score.weightedScore
-      }));
-    }
-    
-    // 2. 평균 임베딩 계산
-    const averageEmbedding = calculateAverageEmbedding(validEmbeddings);
-    if (!averageEmbedding) {
-      console.log("평균 임베딩 계산 실패, 기본 매칭으로 전환합니다.");
-      // 임베딩 계산 실패 시 기본 매칭으로 대체
-      const basicResults = await recommendRecipesByBasicMatching(ingredientNames);
-      
-      // 결과 형식 변환
-      return basicResults.map(item => ({
-        id: item.id,
-        title: item.title,
-        short_title: item.short_title || '',
-        raw_ingredients: item.raw_ingredients || '',
-        image_url: item.image_url || '',
-        similarity: item.score.weightedScore
-      }));
-    }
-    
-    // 3. 임베딩 정규화
-    const normalizedEmbedding = normalizeEmbedding(averageEmbedding);
-    
+    // 1차: 임베딩 기반 추천 시도
     try {
-      // 4. 유사 레시피 조회 - 초기 threshold 0.7로 시작하여 결과가 10개 미만이면 0.1씩 감소
-      const results = await findSimilarRecipes(normalizedEmbedding, 0.7, 20, 0.1, 10);
-      if (results && results.length > 0) {
-        return results;
-      } else {
-        // 결과가 없는 경우 기본 매칭으로 대체
-        console.log("벡터 검색 결과가 없습니다. 기본 매칭으로 전환합니다.");
-        const basicResults = await recommendRecipesByBasicMatching(ingredientNames);
-        
-        // 결과 형식 변환
-        return basicResults.map(item => ({
-          id: item.id,
-          title: item.title,
-          short_title: item.short_title || '',
-          raw_ingredients: item.raw_ingredients || '',
-          image_url: item.image_url || '',
-          similarity: item.score.weightedScore
-        }));
-      }
-    } catch (error) {
-      console.error("벡터 검색 중 오류:", error);
-      // 오류 발생 시 기본 매칭으로 대체
-      console.log("벡터 검색 오류 발생. 기본 매칭으로 전환합니다.");
-      const basicResults = await recommendRecipesByBasicMatching(ingredientNames);
+      const ingredientEmbeddings = await getIngredientsEmbeddings(ingredientNames);
       
-      // 결과 형식 변환
-      return basicResults.map(item => ({
-        id: item.id,
-        title: item.title,
-        short_title: item.short_title || '',
-        raw_ingredients: item.raw_ingredients || '',
-        image_url: item.image_url || '',
-        similarity: item.score.weightedScore
-      }));
+      const validEmbeddings = ingredientEmbeddings
+        .filter(item => item.embedding !== null)
+        .map(item => item.embedding as number[]);
+      
+      if (validEmbeddings.length > 0) {
+        const averageEmbedding = calculateAverageEmbedding(validEmbeddings);
+        
+        if (averageEmbedding) {
+          const normalizedEmbedding = normalizeEmbedding(averageEmbedding);
+          const embeddingResults = await findSimilarRecipes(normalizedEmbedding, 0.6, 15);
+          
+          if (embeddingResults && embeddingResults.length >= 5) {
+            console.log(`[하이브리드 추천] 임베딩 성공: ${embeddingResults.length}개`);
+            return embeddingResults;
+          }
+        }
+      }
+    } catch {
+      console.log("[하이브리드 추천] 임베딩 추천 실패, 기본 매칭으로 전환");
     }
+    
+    // 2차: 기본 매칭 방식 사용
+    console.log("[하이브리드 추천] 기본 매칭 사용");
+    const basicResults = await recommendRecipesByBasicMatching(ingredientNames);
+    
+    // 결과 형식 변환
+    return basicResults.map(item => ({
+      id: item.id,
+      title: item.title,
+      short_title: item.short_title || '',
+      raw_ingredients: item.raw_ingredients || '',
+      image_url: item.image_url || '',
+      similarity: item.score.weightedScore
+    }));
+    
   } catch (error) {
     console.error("레시피 추천 중 오류:", error);
     return [];

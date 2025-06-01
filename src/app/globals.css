@@ -236,13 +236,3 @@ textarea::placeholder {
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
-
-/* 어두운 모드 지원 준비 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
-    --foreground: #E2E8F0;
-    --surface: rgba(30, 41, 59, 0.95);
-    --surface-hover: rgba(30, 41, 59, 0.8);
-  }
-}
